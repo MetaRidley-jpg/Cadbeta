@@ -65,6 +65,8 @@ jobs:
           grep -q "passed, 0 failed" rules.log
           ~/godot/godot --headless --path . res://tests/dogfight_test.tscn --quit-after 20000 -- --fresh | tee dogfight.log
           grep -q "passed, 0 failed" dogfight.log
+          ~/godot/godot --headless --path . res://tests/touch_test.tscn --quit-after 6000 -- --fresh | tee touch.log
+          grep -q "passed, 0 failed" touch.log
 
       - name: Export Web
         run: |

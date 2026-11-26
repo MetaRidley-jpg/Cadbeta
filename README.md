@@ -286,3 +286,10 @@ T: "iPhone and we will use web route" (no PC available).
 - Local check: `godot --headless --path . --export-pack "Web" build/test.pck`, then run that pack alone from an empty folder with `--main-pack`. Menu and boss wave both run, no script errors.
 - Repo: github.com/MetaRidley-jpg/Cadbeta (public). Live build: https://metaridley-jpg.github.io/Cadbeta/ (rebuilds on every push to `main`, ~1 min).
 - One-time repo setup (done 2026-11-26): Claude GitHub App installed on the repo (push access); Settings → Pages → Source: "GitHub Actions" (the workflow token cannot turn Pages on).
+
+## Slice 16j: touch scrolling fix + Play home screen (2026-11-26)
+T (first test on the iPhone web build): "Scrolling doesn't work on mobile, condense play into an app icon screen basically".
+- **Bug:** a finger drag only scrolled a list when it started on an empty gap. Cards (PanelContainer) and buttons STOP input by default, so the ScrollContainer never saw the drag. This was not web-only; it would hit a native phone build too.
+- **Fix:** `main.gd _touch_scroll_fix()`: every Control inside a ScrollContainer that STOPs input now PASSes it up (hooked on `SceneTree.node_added`, so rows built later are covered). Godot still makes a short tap a press; a drag past the 14 px deadzone scrolls and presses nothing.
+- **Play home screen:** 3x2 app icons (`scripts/play_icon.gd`): Pool, Dogfight (best-wave badge), Blackjack, Hold'em (lock + countdown when the table is closed), Pinball (SOON, locked), Options. One tap = play. Options holds jet / ASSIST / KO REPLAY / table skin / bet table / pool note. Debug flag `--playopts`.
+- **Test:** `tests/touch_test.tscn` (25 checks) sends real ScreenTouch / ScreenDrag events: drags on cards and buttons scroll every overflowing list and press nothing; the Play home fits one screen; taps on icons open Options and start the dogfight. Added to the web build gate.

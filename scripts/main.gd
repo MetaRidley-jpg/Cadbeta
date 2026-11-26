@@ -42,6 +42,9 @@ func _ready() -> void:
 	manager_box.add_to_group("manager_box")
 	%FxLayer.add_child(manager_box)
 	manager_box.scene_finished.connect(_on_scene_finished)
+	get_tree().node_added.connect(_touch_scroll_fix)
+	for n in find_children("*", "Control", true, false):
+		_touch_scroll_fix(n)
 	_build_nav()
 	_build_buildings()
 	_build_schemes()
@@ -186,6 +189,22 @@ func show_page(i: int) -> void:
 		pages[p].visible = p == i
 	nav_buttons[i].button_pressed = true
 	_slow_refresh()
+
+## Touch scrolling (web/iPhone bug, 2026-11-26): a Control that STOPs input eats the
+## finger drag, so a list only scrolled when you touched an empty gap. Every card,
+## button and row inside a ScrollContainer now PASSes input up. Godot still treats a
+## short tap as a press, and a drag past the scroll deadzone cancels the press.
+func _touch_scroll_fix(n: Node) -> void:
+	if not (n is Control) or n is ScrollContainer or n is ScrollBar:
+		return
+	if (n as Control).mouse_filter != Control.MOUSE_FILTER_STOP:
+		return
+	var p := n.get_parent()
+	while p != null:
+		if p is ScrollContainer:
+			(n as Control).mouse_filter = Control.MOUSE_FILTER_PASS
+			return
+		p = p.get_parent()
 
 func _set_nav_badge(i: int, on: bool) -> void:
 	nav_buttons[i].text = PAGES[i] + (" •" if on else "")
@@ -499,40 +518,41 @@ func _refresh_rebury() -> void:
 # =====================================================================
 func _build_play() -> void:
 	_clear(%PlayList)
-	_label(%PlayList, "Play with Cadavire. Skill games are free and pay bones + Fever. Marrow bets live only at the card table.", "MutedLabel", true)
-	var v := _card(%PlayList, true)
-	_label(v, "POOL", "NamePlate")
-	_label(v, "8-ball vs Cadavire", "TitleLabel")
-	_play_widgets.pool_desc = _label(v, "", "SmallLabel", true)
-	_label(v, "Win: about 1 minute of income in bones. Every match gives Fever.", "AccentLabel", true)
-	_play_widgets.start = _button(v, "PLAY POOL", func(): start_pool())
-	_play_widgets.dogfight_card = _card(%PlayList, true)
-	var c := _card(%PlayList)
-	_label(c, "CARD TABLE", "NamePlate")
-	_label(c, "Blackjack (Cadavire deals) or Hold'em (Cadavire plays). The only place to bet Marrow. Managers you have met sit in and cause funny business.", "SmallLabel", true)
-	_play_widgets.bet_info = _label(c, "", "MutedLabel", true)
-	var th := HBoxContainer.new()
-	c.add_child(th)
-	_play_widgets.table_swatch = Control.new()
-	_play_widgets.table_swatch.custom_minimum_size = Vector2(96, 56)
-	_play_widgets.table_swatch.draw.connect(_draw_table_swatch)
-	th.add_child(_play_widgets.table_swatch)
-	_play_widgets.table_name = _label(th, "", "SmallLabel", true)
-	_play_widgets.table_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_play_widgets.table_btn = _button(th, "CHANGE", func(): _cycle_cosmetic("table"), true, 130)
-	_play_widgets.cards_start = _button(c, "PLAY BLACKJACK", func(): start_cards())
-	_play_widgets.holdem_start = _button(c, "PLAY HOLD'EM", func(): start_holdem())
-	var pb := _card(%PlayList)
-	_label(pb, "PINBALL", "NamePlate")
-	_label(pb, "Not built yet.", "MutedLabel")
-	_build_dogfight_card(_play_widgets.dogfight_card)
-	_refresh_play()
-
-func _build_dogfight_card(v: VBoxContainer) -> void:
+	_play_widgets.clear()
+	# ---- home screen: one tap = play (T: "condense play into an app icon screen basically")
+	var home := VBoxContainer.new()
+	home.add_theme_constant_override("separation", 14)
+	%PlayList.add_child(home)
+	_play_widgets.home = home
+	var hint := _label(home, "Skill games pay bones + Fever. Marrow bets only at the card table.", "MutedLabel", true)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var cc := CenterContainer.new()
+	home.add_child(cc)
+	var grid := GridContainer.new()
+	grid.columns = 3
+	grid.add_theme_constant_override("h_separation", 22)
+	grid.add_theme_constant_override("v_separation", 6)
+	cc.add_child(grid)
+	_play_widgets.start = _play_icon(grid, "pool", "Pool", func(): start_pool())
+	_play_widgets.df_start = _play_icon(grid, "dogfight", "Dogfight", func(): start_dogfight())
+	_play_widgets.cards_start = _play_icon(grid, "blackjack", "Blackjack", func(): start_cards())
+	_play_widgets.holdem_start = _play_icon(grid, "holdem", "Hold'em", func(): start_holdem())
+	_play_widgets.pinball = _play_icon(grid, "pinball", "Pinball", func(): pass)
+	_play_widgets.pinball.disabled = true
+	_play_widgets.options = _play_icon(grid, "options", "Options", func(): _show_play_options(true))
+	_play_widgets.df_best = _label(home, "", "AccentLabel", true)
+	_play_widgets.df_best.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_play_widgets.bet_short = _label(home, "", "SmallLabel", true)
+	_play_widgets.bet_short.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# ---- options sheet (the settings that used to make this page scroll)
+	var opts := VBoxContainer.new()
+	opts.visible = false
+	%PlayList.add_child(opts)
+	_play_widgets.opts = opts
+	var back := _button(opts, "< PLAY", func(): _show_play_options(false), true, 170)
+	back.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	var v := _card(opts, true)
 	_label(v, "DOGFIGHT", "NamePlate")
-	_label(v, "Survive the waves", "TitleLabel")
-	_label(v, "Cadavire flies, you steer. Fly low, drift and hit hoops to fill BOOST. Guns fire on their own; BOMB the flak ships. Full 360: pull to loop, double-tap the stick (Q / E on PC) to barrel roll past bullets. Weather gets worse every wave: rain, fog and thunder, a volcano, then an asteroid.", "SmallLabel", true)
-	_play_widgets.df_best = _label(v, "", "AccentLabel", true)
 	var jh := HBoxContainer.new()
 	v.add_child(jh)
 	_play_widgets.jet_name = _label(jh, "", "SmallLabel", true)
@@ -548,13 +568,40 @@ func _build_dogfight_card(v: VBoxContainer) -> void:
 		_refresh_play(), true, 170)
 	var rh := HBoxContainer.new()
 	v.add_child(rh)
-	var rl := _label(rh, "Fighting-game replay of the KO: the kill that clears a wave, or your crash. Tap to skip.", "SmallLabel", true)
+	var rl := _label(rh, "Replay the KO: the kill that clears a wave, or your crash. Tap to skip.", "SmallLabel", true)
 	rl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_play_widgets.replay_btn = _button(rh, "KO REPLAY", func():
 		Game.df_replays = not Game.df_replays
 		Game.save_game()
 		_refresh_play(), true, 170)
-	_play_widgets.df_start = _button(v, "PLAY DOGFIGHT", func(): start_dogfight())
+	_label(v, "Steer with the stick. Guns fire by themselves. Drift, then let go to boost. Double-tap the stick (Q / E on PC) to barrel roll.", "MutedLabel", true)
+	var c := _card(opts)
+	_label(c, "CARD TABLE", "NamePlate")
+	var th := HBoxContainer.new()
+	c.add_child(th)
+	_play_widgets.table_swatch = Control.new()
+	_play_widgets.table_swatch.custom_minimum_size = Vector2(96, 56)
+	_play_widgets.table_swatch.draw.connect(_draw_table_swatch)
+	th.add_child(_play_widgets.table_swatch)
+	_play_widgets.table_name = _label(th, "", "SmallLabel", true)
+	_play_widgets.table_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_play_widgets.table_btn = _button(th, "CHANGE", func(): _cycle_cosmetic("table"), true, 130)
+	_play_widgets.bet_info = _label(c, "", "MutedLabel", true)
+	var pc := _card(opts)
+	_label(pc, "POOL", "NamePlate")
+	_play_widgets.pool_desc = _label(pc, "", "SmallLabel", true)
+	_refresh_play()
+
+func _play_icon(parent: Node, kind: String, title: String, cb: Callable) -> PlayIcon:
+	var b := PlayIcon.new().setup(kind, title)
+	b.pressed.connect(cb)
+	parent.add_child(b)
+	return b
+
+func _show_play_options(on: bool) -> void:
+	_play_widgets.home.visible = not on
+	_play_widgets.opts.visible = on
+	%PlayPage.scroll_vertical = 0
 
 func _refresh_play() -> void:
 	if _play_widgets.is_empty():
@@ -565,7 +612,8 @@ func _refresh_play() -> void:
 	_play_widgets.pool_desc.text = "You: solids. She: stripes. You break. Pocket your 7, then the 8. She plays in her current outfit, so today she is %s%s." % [
 		style, ", and too excited to aim well (Fever)" if Game.fever_active else ""]
 	if _play_widgets.has("df_best"):
-		_play_widgets.df_best.text = "Best: %d waves · %d points. Pays bones for every wave you survive." % [Game.df_best_wave, Game.df_best_score]
+		_play_widgets.df_best.text = ("Dogfight best: wave %d · %d points" % [Game.df_best_wave, Game.df_best_score]) if Game.df_best_wave > 0 else "Dogfight pays bones for every wave you survive."
+		_play_widgets.df_start.set_state(("W%d" % Game.df_best_wave) if Game.df_best_wave > 0 else "", "")
 		_play_widgets.assist_btn.text = "ASSIST: ON" if Game.df_assist else "ASSIST: OFF"
 		_play_widgets.assist_lbl.text = "Wings level themselves when you let go." if Game.df_assist else "Expert: the jet holds any attitude, even upside down."
 		_play_widgets.replay_btn.text = "KO REPLAY: ON" if Game.df_replays else "KO REPLAY: OFF"
@@ -581,8 +629,11 @@ func _refresh_play() -> void:
 		_play_widgets.table_btn.visible = not Challenges.owned_of_type("table").is_empty()
 		_play_widgets.table_swatch.queue_redraw()
 	_play_widgets.bet_info.text = "Max bet by prestige rank: " + ", ".join(bets) + ". Your max now: %d." % Game.max_bet()
+	var cap: int = Game.MAX_BET_BY_RANK[clampi(Game.rank, 0, Game.MAX_BET_BY_RANK.size() - 1)]
+	_play_widgets.bet_short.text = "Card table: bet up to %d Marrow at rank %d (you have %d)" % [cap, Game.rank, Game.marrow]
+	_play_widgets.pinball.set_state("SOON", "")
 	var shut := Game.away_left("cadavire") > 0.0
-	_play_widgets.holdem_start.text = ("HOLD'EM CLOSED (%s)" % holdem_page.away_text("cadavire")) if shut else "PLAY HOLD'EM"
+	_play_widgets.holdem_start.set_state("", ("Closed " + holdem_page.away_text("cadavire")) if shut else "")
 	_play_widgets.holdem_start.disabled = shut
 
 ## Default -> each owned prize -> default.
@@ -1126,6 +1177,8 @@ func _debug_setup() -> void:
 				df.set_process(false)
 	if args.has("tab"):
 		show_page(int(args.tab))
+	if args.has("playopts"):
+		_show_play_options(true)
 	# Challenges: --chdone=id,id (break silently) --chpend=id,id (break, shatter on open)
 	#   --chbones=N --tint=rid --ship=rid --table=rid --challenges (open the wall)
 	#   --chsel=col,row --chbone (Golden Bone mode) --chstep=SECONDS (stop mid-shatter)
