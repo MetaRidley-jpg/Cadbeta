@@ -284,4 +284,5 @@ T: "iPhone and we will use web route" (no PC available).
 - `.github/workflows/web.yml`: on push to `main`, install Godot 4.7.2 + web templates, run the rule and dogfight tests (a failure blocks the publish), export, publish to GitHub Pages.
 - `.gitignore`: `export_presets.cfg` and `*.import` are now committed (Godot 4 needs the import settings); `build/` and `tools/demos/` are ignored.
 - Local check: `godot --headless --path . --export-pack "Web" build/test.pck`, then run that pack alone from an empty folder with `--main-pack`. Menu and boss wave both run, no script errors.
-- One-time repo setup: Settings → Pages → Source: "GitHub Actions".
+- Repo: github.com/MetaRidley-jpg/Cadbeta (public). Live build: https://metaridley-jpg.github.io/Cadbeta/ (rebuilds on every push to `main`, ~1 min).
+- One-time repo setup (done 2026-11-26): Claude GitHub App installed on the repo (push access); Settings → Pages → Source: "GitHub Actions" (the workflow token cannot turn Pages on).
