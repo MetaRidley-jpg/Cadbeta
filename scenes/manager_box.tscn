@@ -1,0 +1,74 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/manager_box.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/manager_portrait.gd" id="2"]
+
+[node name="ManagerBox" type="PanelContainer"]
+custom_minimum_size = Vector2(0, 210)
+offset_right = 696.0
+offset_bottom = 210.0
+mouse_filter = 0
+theme_type_variation = &"ManagerCard"
+script = ExtResource("1")
+
+[node name="HBox" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="MgrPortrait" type="Control" parent="HBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(112, 112)
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+script = ExtResource("2")
+
+[node name="VBox" type="VBoxContainer" parent="HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="Head" type="HBoxContainer" parent="HBox/VBox"]
+layout_mode = 2
+
+[node name="MgrName" type="Label" parent="HBox/VBox/Head"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"ManagerName"
+text = "Manager"
+text_overrun_behavior = 3
+
+[node name="MgrTier" type="Label" parent="HBox/VBox/Head"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "LOYALTY 1/5"
+
+[node name="MgrText" type="Label" parent="HBox/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 92)
+layout_mode = 2
+theme_type_variation = &"SmallLabel"
+theme_override_font_sizes/font_size = 22
+text = "..."
+autowrap_mode = 3
+
+[node name="Buttons" type="HBoxContainer" parent="HBox/VBox"]
+layout_mode = 2
+
+[node name="SkipButton" type="Button" parent="HBox/VBox/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(90, 52)
+layout_mode = 2
+theme_type_variation = &"GhostButton"
+text = "SKIP"
+
+[node name="ReplyButton" type="Button" parent="HBox/VBox/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
+text = "NEXT"
+text_overrun_behavior = 3

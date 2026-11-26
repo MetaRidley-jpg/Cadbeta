@@ -1,0 +1,382 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/portrait.gd" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/dialogue_box.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/pool_game.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/dogfight.tscn" id="5"]
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Bg" type="ColorRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.08, 0.07, 0.1, 1)
+
+[node name="Root" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+
+[node name="TopBar" type="PanelContainer" parent="Root"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"TopBar"
+
+[node name="TopV" type="VBoxContainer" parent="Root/TopBar"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="HBox" type="HBoxContainer" parent="Root/TopBar/TopV"]
+layout_mode = 2
+
+[node name="BonesBox" type="VBoxContainer" parent="Root/TopBar/TopV/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+
+[node name="BonesCaption" type="Label" parent="Root/TopBar/TopV/HBox/BonesBox"]
+layout_mode = 2
+theme_type_variation = &"NamePlate"
+text = "BONES"
+
+[node name="BonesLabel" type="Label" parent="Root/TopBar/TopV/HBox/BonesBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BigLabel"
+text = "0"
+
+[node name="RateLabel" type="Label" parent="Root/TopBar/TopV/HBox/BonesBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"AccentLabel"
+text = "+0 /s"
+
+[node name="RightBox" type="VBoxContainer" parent="Root/TopBar/TopV/HBox"]
+layout_mode = 2
+alignment = 1
+
+[node name="RankBox" type="PanelContainer" parent="Root/TopBar/TopV/HBox/RightBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 8
+theme_type_variation = &"RankBox"
+
+[node name="RankLabel" type="Label" parent="Root/TopBar/TopV/HBox/RightBox/RankBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"TitleLabel"
+text = "RANK 0"
+horizontal_alignment = 1
+
+[node name="MarrowLabel" type="Label" parent="Root/TopBar/TopV/HBox/RightBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"TitleLabel"
+text = "MARROW 0"
+horizontal_alignment = 2
+
+[node name="LevelRow" type="HBoxContainer" parent="Root/TopBar/TopV"]
+layout_mode = 2
+
+[node name="LevelLabel" type="Label" parent="Root/TopBar/TopV/LevelRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+theme_type_variation = &"NamePlate"
+text = "LV 0"
+
+[node name="LevelBar" type="ProgressBar" parent="Root/TopBar/TopV/LevelRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_type_variation = &"LevelBar"
+max_value = 1.0
+step = 0.0001
+show_percentage = false
+
+[node name="LevelPct" type="Label" parent="Root/TopBar/TopV/LevelRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(84, 0)
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "0.00%"
+horizontal_alignment = 2
+
+[node name="Stage" type="PanelContainer" parent="Root"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Stage"
+
+[node name="HBox" type="HBoxContainer" parent="Root/Stage"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Portrait" type="Control" parent="Root/Stage/HBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(250, 330)
+layout_mode = 2
+script = ExtResource("2")
+
+[node name="StageRight" type="VBoxContainer" parent="Root/Stage/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="DialogueBox" parent="Root/Stage/HBox/StageRight" instance=ExtResource("3")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="FeverRow" type="HBoxContainer" parent="Root/Stage/HBox/StageRight"]
+layout_mode = 2
+
+[node name="FeverTitle" type="Label" parent="Root/Stage/HBox/StageRight/FeverRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"NamePlate"
+text = "FEVER"
+
+[node name="FeverBar" type="ProgressBar" parent="Root/Stage/HBox/StageRight/FeverRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_type_variation = &"FeverBar"
+show_percentage = false
+
+[node name="FeverLabel" type="Label" parent="Root/Stage/HBox/StageRight/FeverRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(70, 0)
+layout_mode = 2
+theme_type_variation = &"SmallLabel"
+text = "0%"
+horizontal_alignment = 2
+
+[node name="CostumeLabel" type="Label" parent="Root/Stage/HBox/StageRight"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "Wearing: Grave Casual"
+text_overrun_behavior = 3
+
+[node name="EquipLabel" type="Label" parent="Root/Stage/HBox/StageRight"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "Holding: nothing"
+text_overrun_behavior = 3
+
+[node name="Pages" type="MarginContainer" parent="Root"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 6
+
+[node name="BuildingsPage" type="VBoxContainer" parent="Root/Pages"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Header" type="HBoxContainer" parent="Root/Pages/BuildingsPage"]
+layout_mode = 2
+
+[node name="BuyModeButton" type="Button" parent="Root/Pages/BuildingsPage/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 48)
+layout_mode = 2
+theme_type_variation = &"GhostButton"
+text = "BUY x1"
+
+[node name="Spacer" type="Control" parent="Root/Pages/BuildingsPage/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NextSchemeLabel" type="Label" parent="Root/Pages/BuildingsPage/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = ""
+horizontal_alignment = 2
+
+[node name="Scroll" type="ScrollContainer" parent="Root/Pages/BuildingsPage"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+scroll_deadzone = 14
+
+[node name="BuildingList" type="VBoxContainer" parent="Root/Pages/BuildingsPage/Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="SchemesPage" type="ScrollContainer" parent="Root/Pages"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+horizontal_scroll_mode = 0
+scroll_deadzone = 14
+
+[node name="SchemeList" type="VBoxContainer" parent="Root/Pages/SchemesPage"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="WardrobePage" type="ScrollContainer" parent="Root/Pages"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+horizontal_scroll_mode = 0
+scroll_deadzone = 14
+
+[node name="CostumeList" type="VBoxContainer" parent="Root/Pages/WardrobePage"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="StashPage" type="ScrollContainer" parent="Root/Pages"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+horizontal_scroll_mode = 0
+scroll_deadzone = 14
+
+[node name="ItemList" type="VBoxContainer" parent="Root/Pages/StashPage"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PlayPage" type="ScrollContainer" parent="Root/Pages"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+horizontal_scroll_mode = 0
+scroll_deadzone = 14
+
+[node name="PlayList" type="VBoxContainer" parent="Root/Pages/PlayPage"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PoolPage" parent="Root/Pages" instance=ExtResource("4")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="DogfightPage" parent="Root/Pages" instance=ExtResource("5")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="ReburyPage" type="ScrollContainer" parent="Root/Pages"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+horizontal_scroll_mode = 0
+scroll_deadzone = 14
+
+[node name="ReburyBox" type="VBoxContainer" parent="Root/Pages/ReburyPage"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NavBar" type="PanelContainer" parent="Root"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"NavBar"
+
+[node name="NavButtons" type="HBoxContainer" parent="Root/NavBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 84)
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="FxLayer" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="PopupLayer" type="Control" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Dim" type="ColorRect" parent="PopupLayer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="Center" type="CenterContainer" parent="PopupLayer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Popup" type="PanelContainer" parent="PopupLayer/Center"]
+custom_minimum_size = Vector2(560, 0)
+layout_mode = 2
+theme_type_variation = &"ModalCard"
+
+[node name="VBox" type="VBoxContainer" parent="PopupLayer/Center/Popup"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="PopupTitle" type="Label" parent="PopupLayer/Center/Popup/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"TitleLabel"
+text = "Welcome back"
+horizontal_alignment = 1
+
+[node name="PopupText" type="Label" parent="PopupLayer/Center/Popup/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(500, 0)
+layout_mode = 2
+text = "..."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="PopupButton" type="Button" parent="PopupLayer/Center/Popup/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+text = "NICE"

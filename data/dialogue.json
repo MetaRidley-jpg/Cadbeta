@@ -1,0 +1,1081 @@
+{
+ "_readme": "t = text, e = expression (neutral, shy, smug, excited, flustered, hungry, disgusted, feral). Prefix 'fever.' = used during Fever. Prefix 'caveman.' = used while wearing Cave-Gal Pelt. Missing keys fall back to the plain key, then to the part before the dot (gift.dog_chew -> gift).",
+ "idle": [
+  {
+   "t": "Oh! You're still here. Good. I mean, the bones are good. You're... also fine.",
+   "e": "shy"
+  },
+  {
+   "t": "I counted every bone today. Twice. You're not a bone, so I counted you once. Don't let it go to your head.",
+   "e": "smug"
+  },
+  {
+   "t": "Do skeletons get lonely? Asking for a skeleton. Me. I'm the skeleton.",
+   "e": "flustered"
+  },
+  {
+   "t": "If you stare at the numbers long enough, they stare back. That's my favorite part.",
+   "e": "smug"
+  },
+  {
+   "t": "Rattle rattle. That's not a joke. My knee does that when I'm happy.",
+   "e": "shy"
+  },
+  {
+   "t": "You're kind of good at this. Not that I was watching. I was watching.",
+   "e": "flustered"
+  },
+  {
+   "t": "Business tip: never trust a bone that's too clean. Unless I cleaned it. Then trust it completely.",
+   "e": "smug"
+  },
+  {
+   "t": "I made a list of my favorite things. Bones, more bones, and one thing I crossed out. Don't ask.",
+   "e": "shy"
+  },
+  {
+   "t": "Is it weird that I like it when you check on me? It's weird. Forget it. Don't forget it.",
+   "e": "flustered"
+  },
+  {
+   "t": "My heart doesn't beat. It does a little skippy thing though. Probably structural.",
+   "e": "excited"
+  },
+  {
+   "t": "What if we bought another one. Of everything. Just to see.",
+   "e": "excited"
+  }
+ ],
+ "hello": [
+  {
+   "t": "Oh! It's you. Hi. I wasn't doing anything. Just bones. Want to make some bones?",
+   "e": "shy"
+  },
+  {
+   "t": "You came! I mean, you opened the app. Same thing. Let's get rich. In bones.",
+   "e": "excited"
+  },
+  {
+   "t": "Hey, partner. The bones missed you. I'm the bones in this sentence.",
+   "e": "smug"
+  }
+ ],
+ "idle_away": [
+  {
+   "t": "...Hello? I'm not lonely. I'm narrating to the bones now. They're great listeners.",
+   "e": "neutral"
+  },
+  {
+   "t": "You went quiet. That's fine. I'll stand here. Decomposing. Cutely.",
+   "e": "smug"
+  },
+  {
+   "t": "I'll keep the lights on. Well. The bones on.",
+   "e": "shy"
+  }
+ ],
+ "buy_new": [
+  {
+   "t": "A whole new place! I'm going to lick everything there. For quality reasons.",
+   "e": "excited"
+  },
+  {
+   "t": "New building, new bones, new smells. Good day to be dead.",
+   "e": "excited"
+  },
+  {
+   "t": "You bought that for us? For the business. For the business. Yes.",
+   "e": "flustered"
+  }
+ ],
+ "milestone": [
+  {
+   "t": "Faster! Faster is good. Faster is SO good.",
+   "e": "excited"
+  },
+  {
+   "t": "Look at it go. I could watch that all day. I will, actually.",
+   "e": "smug"
+  }
+ ],
+ "manager": [
+  {
+   "t": "A new hire! I'll be nice to them. Mostly. Like, eighty percent.",
+   "e": "smug"
+  },
+  {
+   "t": "Now it runs without you. Don't take that as a hint to leave, though.",
+   "e": "shy"
+  }
+ ],
+ "scheme": [
+  {
+   "t": "Ooh, a scheme. I love a scheme. Don't tell anyone. Tell me everything.",
+   "e": "smug"
+  },
+  {
+   "t": "Is this legal? Don't answer. I like it better when you don't answer.",
+   "e": "smug"
+  },
+  {
+   "t": "We're partners in crime now. Business crime. The fun kind.",
+   "e": "excited"
+  }
+ ],
+ "taste_0": [
+  {
+   "t": "Blegh. That one tasted like a parking lot.",
+   "e": "disgusted"
+  },
+  {
+   "t": "Stale. Dry. Sad little bone. Who runs that place? Oh. We do.",
+   "e": "disgusted"
+  }
+ ],
+ "taste_1": [
+  {
+   "t": "Mm. Fine. Crunchy. Six out of ten. Hire better ghouls.",
+   "e": "neutral"
+  },
+  {
+   "t": "It's okay! Like a cracker. A cracker that used to have opinions.",
+   "e": "neutral"
+  }
+ ],
+ "taste_2": [
+  {
+   "t": "Oh, that's GOOD. Do that again. The whole building. More of that.",
+   "e": "excited"
+  },
+  {
+   "t": "Mmh! Okay, that place is my favorite now. I'm giving it a boost. Shh.",
+   "e": "hungry"
+  }
+ ],
+ "taste_3": [
+  {
+   "t": "Oh no. Oh no, that's incredible. Don't look at me. That was a very personal crunch.",
+   "e": "flustered"
+  },
+  {
+   "t": "Exquisite. That bone had a whole life. Now it's having a better one. In me.",
+   "e": "hungry"
+  },
+  {
+   "t": "If you ever wonder what happiness tastes like: femur. It's femur.",
+   "e": "excited"
+  }
+ ],
+ "fever_start": [
+  {
+   "t": "Okay. OKAY. Everything is cheap and I'm so loud now. Hi. Hi! I'm talking to YOU.",
+   "e": "feral"
+  },
+  {
+   "t": "Something's buzzing in my ribs. Let's spend. Let's spend everything. With you. On bones.",
+   "e": "feral"
+  }
+ ],
+ "fever_end": [
+  {
+   "t": "...Phew. Did I say a lot? I said a lot. Ignore most of it. Keep some of it.",
+   "e": "shy"
+  },
+  {
+   "t": "Okay, I'm back. Normal me. Who was that? Don't answer that.",
+   "e": "flustered"
+  }
+ ],
+ "fever.idle": [
+  {
+   "t": "Bones are just the inside of a hug. Think about it. I think about it constantly.",
+   "e": "feral"
+  },
+  {
+   "t": "Buy something. Buy anything. Buy me a- no. Buy a building. Yes.",
+   "e": "feral"
+  },
+  {
+   "t": "I'm not blushing. Zombies can't blush. This is circulation. Rare, but it happens.",
+   "e": "flustered"
+  },
+  {
+   "t": "Look at me. No, look at the numbers. Okay, now look at me again.",
+   "e": "smug"
+  },
+  {
+   "t": "I'm SO normal right now. Extremely normal. Hehe.",
+   "e": "excited"
+  },
+  {
+   "t": "If I had a pulse it would be doing a drum solo.",
+   "e": "feral"
+  },
+  {
+   "t": "Everything's on sale and so is my self-control!",
+   "e": "feral"
+  }
+ ],
+ "fever.taste_0": [
+  {
+   "t": "Even the bad ones taste good right now! What's happening to me!",
+   "e": "feral"
+  }
+ ],
+ "fever.taste_3": [
+  {
+   "t": "AAAH. Bone. BONE. I'll remember this forever. And you were here for it. For the bone. Obviously.",
+   "e": "feral"
+  }
+ ],
+ "fever.buy_new": [
+  {
+   "t": "YES. More. Another one. You have such good taste. In buildings. Only buildings.",
+   "e": "feral"
+  }
+ ],
+ "costume_buy": [
+  {
+   "t": "For me? You spent Marrow on- okay. Okay. I'm wearing it right now. Don't look. Look.",
+   "e": "flustered"
+  },
+  {
+   "t": "It fits. Of course it fits. You guessed my size? I'm not going to think about that.",
+   "e": "shy"
+  }
+ ],
+ "costume_wear": [
+  {
+   "t": "New look. Rate me out of ten. Don't say a number, I'll get weird.",
+   "e": "shy"
+  },
+  {
+   "t": "Outfit change! Same girl. Mostly. Slightly more dangerous.",
+   "e": "smug"
+  }
+ ],
+ "equip": [
+  {
+   "t": "I'll keep it with me. Not where you can see. Somewhere safe.",
+   "e": "shy"
+  },
+  {
+   "t": "Equipped. It doesn't show, but I know it's there. That's the point.",
+   "e": "smug"
+  }
+ ],
+ "gift": [
+  {
+   "t": "A gift? For me? To keep? I'm going to be normal about this. I'm not being normal.",
+   "e": "flustered"
+  }
+ ],
+ "gift.dog_chew": [
+  {
+   "t": "Premium? You got me the PREMIUM one? I'm burying it so nobody else touches it.",
+   "e": "excited"
+  }
+ ],
+ "gift.knuckle_jar": [
+  {
+   "t": "A whole jar. Of knuckles. You get me. That's a dangerous thing to do.",
+   "e": "flustered"
+  }
+ ],
+ "gift.velvet_ribbon": [
+  {
+   "t": "It's soft. I don't own soft things. Tie it? No- I'll do it. Don't watch.",
+   "e": "shy"
+  }
+ ],
+ "gift.hand_mirror": [
+  {
+   "t": "It's cracked. Like me! That's a compliment. I'm deciding it's a compliment.",
+   "e": "smug"
+  }
+ ],
+ "gift.femur_pendant": [
+  {
+   "t": "A femur. On a chain. Around my neck. Near my collarbone. Ha. Ha. Bones.",
+   "e": "flustered"
+  }
+ ],
+ "gift.music_box": [
+  {
+   "t": "It plays the funeral march. That's our song. The business song! The company anthem.",
+   "e": "flustered"
+  }
+ ],
+ "gift.valentine": [
+  {
+   "t": "A Valentine. A fossilized one. That's not- this isn't- you can't just- ...I'm keeping it.",
+   "e": "flustered"
+  }
+ ],
+ "rank_up": [
+  {
+   "t": "We ranked up! Look at the little box! It's a new color! I love the box.",
+   "e": "excited"
+  },
+  {
+   "t": "Promotion! New title, same me. Slightly more powerful me.",
+   "e": "smug"
+  }
+ ],
+ "rebury": [
+  {
+   "t": "It all fell apart! Again! But bones aren't money, so they couldn't take them. Fresh start. With me.",
+   "e": "excited"
+  },
+  {
+   "t": "Business: gone. Bones: buried. Me: still here. You're stuck with me.",
+   "e": "smug"
+  },
+  {
+   "t": "Back in the dirt! I like that you keep starting over with me. For the bones. I mean.",
+   "e": "shy"
+  }
+ ],
+ "welcome_back": [
+  {
+   "t": "You're back! I wasn't waiting. I was standing in the exact spot you left me. Coincidence.",
+   "e": "flustered"
+  },
+  {
+   "t": "Oh! Hi! The ghouls kept working. I kept... existing. The numbers went up!",
+   "e": "excited"
+  }
+ ],
+ "pool_start": [
+  {
+   "t": "Pool! I'm stripes, you're solids. If I win, I get bragging rights. And your Marrow. Mostly bragging.",
+   "e": "smug"
+  },
+  {
+   "t": "Rules: no cheating, and no looking at me while I aim. It's distracting. For me.",
+   "e": "flustered"
+  },
+  {
+   "t": "I'm really good at this. I've had a long time to practice. A REALLY long time.",
+   "e": "smug"
+  }
+ ],
+ "pool_idle": [
+  {
+   "t": "Take your time. I'm not staring. I'm studying the table. Near you.",
+   "e": "shy"
+  },
+  {
+   "t": "You're thinking so hard. It's cute. Shoot already.",
+   "e": "flustered"
+  }
+ ],
+ "pool_you_pot": [
+  {
+   "t": "Okay, nice shot. I'm not impressed. I'm a little impressed.",
+   "e": "shy"
+  },
+  {
+   "t": "Show-off. Do it again.",
+   "e": "smug"
+  },
+  {
+   "t": "Hey! I was watching that one!",
+   "e": "excited"
+  }
+ ],
+ "pool_her_pot": [
+  {
+   "t": "In! Did you see that? Tell me you saw that.",
+   "e": "excited"
+  },
+  {
+   "t": "Clean. Like a femur after a good soak.",
+   "e": "smug"
+  },
+  {
+   "t": "Sunk it. Your turn to be nervous.",
+   "e": "smug"
+  }
+ ],
+ "pool_foul_you": [
+  {
+   "t": "Foul! Ooh. I'll be nice about it. Ha. No I won't.",
+   "e": "smug"
+  },
+  {
+   "t": "That's a foul. Rules are rules. I love rules when they help me.",
+   "e": "smug"
+  }
+ ],
+ "pool_foul_her": [
+  {
+   "t": "That didn't count. The table moved. Tables move. Ask anyone.",
+   "e": "flustered"
+  },
+  {
+   "t": "Okay! I did that on purpose! To make it fair! For you!",
+   "e": "flustered"
+  }
+ ],
+ "pool_win": [
+  {
+   "t": "You won?! Okay. Fine. You earned it. Rematch. Now. Please?",
+   "e": "flustered"
+  },
+  {
+   "t": "Ugh, you're good. I hate that I like that.",
+   "e": "shy"
+  }
+ ],
+ "pool_lose": [
+  {
+   "t": "I WIN! Victory lap! I'm doing a little dance. Don't look. Look.",
+   "e": "excited"
+  },
+  {
+   "t": "Good game! You almost had me. Almost. Want to lose again?",
+   "e": "smug"
+  }
+ ],
+ "fever.pool_start": [
+  {
+   "t": "Pool?! YES. Rack 'em. Rack everything. Let's go let's go.",
+   "e": "feral"
+  }
+ ],
+ "fever.pool_her_pot": [
+  {
+   "t": "IN! IN! Everything goes in today! I'm unstoppable! Don't stop me!",
+   "e": "feral"
+  }
+ ],
+ "caveman.pool_start": [
+  {
+   "t": "Stick. Ball. Hole. Me understand. Me SMASH.",
+   "e": "feral"
+  }
+ ],
+ "caveman.pool_her_pot": [
+  {
+   "t": "BALL GO IN HOLE! ME GENIUS!",
+   "e": "feral"
+  }
+ ],
+ "caveman.pool_foul_her": [
+  {
+   "t": "Ball jump. Ball bad. Not me fault.",
+   "e": "disgusted"
+  }
+ ],
+ "caveman.pool_lose": [
+  {
+   "t": "ME WIN! You bring bonez now.",
+   "e": "feral"
+  }
+ ],
+ "caveman.pool_win": [
+  {
+   "t": "You win... Me sad? No. Me hungry. Again.",
+   "e": "hungry"
+  }
+ ],
+ "df_start": [
+  {
+   "t": "Goggles on! I fly, you steer. Wait. That's the same thing. Don't think about it.",
+   "e": "excited"
+  },
+  {
+   "t": "Strap in. If we crash, I'm blaming the bones in the cargo hold.",
+   "e": "smug"
+  },
+  {
+   "t": "Hold on to something. The seat! The seat. Not me. Unless you have to.",
+   "e": "flustered"
+  }
+ ],
+ "df_takedown": [
+  {
+   "t": "TAKEDOWN! Did you see him spin? Beautiful.",
+   "e": "excited"
+  },
+  {
+   "t": "Down he goes! Wave bye-bye!",
+   "e": "smug"
+  },
+  {
+   "t": "That one's going to be bones soon. I call dibs.",
+   "e": "hungry"
+  }
+ ],
+ "df_hoop": [
+  {
+   "t": "Through the hoop! SPEED! More speed!",
+   "e": "excited"
+  }
+ ],
+ "df_low": [
+  {
+   "t": "Low! LOW! I can taste the sand! Keep it there!",
+   "e": "feral"
+  }
+ ],
+ "df_hit": [
+  {
+   "t": "Ow! They scratched the paint! I JUST had it done!",
+   "e": "disgusted"
+  },
+  {
+   "t": "Hull's getting crunchy. Not the good crunchy.",
+   "e": "flustered"
+  }
+ ],
+ "df_kamikaze": [
+  {
+   "t": "Crazy one incoming! Shoot it before it hugs us!",
+   "e": "flustered"
+  }
+ ],
+ "df_wave_clear": [
+  {
+   "t": "Sky's clear! For now. Breathe. Okay, breathe again.",
+   "e": "shy"
+  },
+  {
+   "t": "Wave down! We make a good team. In the air. Mostly in the air.",
+   "e": "flustered"
+  }
+ ],
+ "df_rain": [
+  {
+   "t": "Rain! My hair's going to be a disaster. Well. More of one.",
+   "e": "disgusted"
+  }
+ ],
+ "df_storm": [
+  {
+   "t": "Fog and thunder. Stay close. To the plane. Which I'm in.",
+   "e": "shy"
+  }
+ ],
+ "df_volcano": [
+  {
+   "t": "The volcano woke up! It's raining LAVA! That's new! I love new!",
+   "e": "feral"
+  }
+ ],
+ "df_asteroid_warn": [
+  {
+   "t": "Is that an ASTEROID?! Get away from the big island! Pull SOMETHING!",
+   "e": "flustered"
+  }
+ ],
+ "df_asteroid_hit": [
+  {
+   "t": "It took half the island! ...Bone hunt in the crater later? Later. LATER.",
+   "e": "excited"
+  }
+ ],
+ "df_crash": [
+  {
+   "t": "We're going down! Hold my hand! For balance!",
+   "e": "flustered"
+  }
+ ],
+ "df_over": [
+  {
+   "t": "That was the best date- DOGFIGHT. Best dogfight. Again soon?",
+   "e": "flustered"
+  },
+  {
+   "t": "We're alive! Mostly. I'm always mostly. Again?",
+   "e": "excited"
+  }
+ ],
+ "caveman.df_start": [
+  {
+   "t": "Big metal bird. Me fly. You hold on.",
+   "e": "excited"
+  }
+ ],
+ "caveman.df_takedown": [
+  {
+   "t": "BIRD FALL! ME HAPPY!",
+   "e": "feral"
+  }
+ ],
+ "caveman.idle": [
+  {
+   "t": "Bonez.",
+   "e": "hungry"
+  },
+  {
+   "t": "Moar bonez...",
+   "e": "hungry"
+  },
+  {
+   "t": "You bring bonez. Bonez good. You... also good. Ugh.",
+   "e": "shy"
+  },
+  {
+   "t": "Rock. Bone. Bone better.",
+   "e": "neutral"
+  },
+  {
+   "t": "Me no talk good. Me crunch good.",
+   "e": "smug"
+  },
+  {
+   "t": "Feelings. Feelings like bone stuck in teeth.",
+   "e": "flustered"
+  }
+ ],
+ "caveman.hello": [
+  {
+   "t": "You! You here! Bonez time!",
+   "e": "excited"
+  }
+ ],
+ "caveman.idle_away": [
+  {
+   "t": "...bonez?",
+   "e": "neutral"
+  }
+ ],
+ "caveman.taste_3": [
+  {
+   "t": "BONEZ! MOAR BONEZ!",
+   "e": "feral"
+  },
+  {
+   "t": "CRUNCH. CRUNCH. ...crunch.",
+   "e": "hungry"
+  },
+  {
+   "t": "Stale bone? NO SUCH THING. ALL BONE GOOD.",
+   "e": "feral"
+  }
+ ],
+ "caveman.costume_buy": [
+  {
+   "t": "Pelt warm. Bonez warmer. GIVE BONEZ.",
+   "e": "feral"
+  }
+ ],
+ "caveman.costume_wear": [
+  {
+   "t": "Me Cave-Gal now. Me want... bonez... moar bonez...",
+   "e": "hungry"
+  }
+ ],
+ "caveman.fever_start": [
+  {
+   "t": "UNGA. EVERYTHING CHEAP. BONEZ EVERYWHERE. YOU STAY. ME HAPPY.",
+   "e": "feral"
+  }
+ ],
+ "caveman.gift": [
+  {
+   "t": "Shiny thing? For me? ...Me hide in cave. Me look at it. Every day.",
+   "e": "shy"
+  }
+ ],
+ "caveman.welcome_back": [
+  {
+   "t": "You come back! Me guard bonez. Me guard... your spot.",
+   "e": "shy"
+  }
+ ],
+ "challenge": [
+  {
+   "t": "Crash! Ha. I love that sound. Look what was behind the glass!",
+   "e": "excited"
+  },
+  {
+   "t": "You broke a window for me? That's... okay that's vandalism but it's sweet.",
+   "e": "flustered"
+  },
+  {
+   "t": "Another one down. I'm keeping score. Not of you. Of the glass. Mostly.",
+   "e": "smug"
+  }
+ ],
+ "challenge_gold": [
+  {
+   "t": "A GOLDEN BONE. Don't let me hold it. I will chew it. I'm serious.",
+   "e": "hungry"
+  },
+  {
+   "t": "Gold bone! Use it on any window you want. Pick a pretty one. For me.",
+   "e": "shy"
+  }
+ ],
+ "challenge_open": [
+  {
+   "t": "The wall! Every window is a secret. Some of them are about me. Probably.",
+   "e": "excited"
+  },
+  {
+   "t": "Red glass means you're close. I can see your little hint face.",
+   "e": "smug"
+  }
+ ],
+ "tint_wear": [
+  {
+   "t": "New color! Same bones. Do I look... different? Good different?",
+   "e": "shy"
+  },
+  {
+   "t": "Ooh, it tingles. Paint on the outside, still me on the inside.",
+   "e": "flustered"
+  }
+ ],
+ "caveman.challenge": [
+  {
+   "t": "GLASS GO CRUNCH. Prize! Bonez behind glass? No? ...Still good.",
+   "e": "feral"
+  }
+ ],
+ "caveman.challenge_gold": [
+  {
+   "t": "SHINY BONE. Mine. ...Fine. Yours. Use it. Quick.",
+   "e": "hungry"
+  }
+ ],
+ "df_laser": [
+  {
+   "t": "Locked! Big beam, coming through! ...That was for you. Sort of.",
+   "e": "excited"
+  },
+  {
+   "t": "Laser! It bends because I told it to. I'm very persuasive.",
+   "e": "smug"
+  },
+  {
+   "t": "Zap. Okay, I'm a little impressed with us.",
+   "e": "shy"
+  }
+ ],
+ "caveman.df_laser": [
+  {
+   "t": "BIG RED LIGHT. Bad plane go bye.",
+   "e": "feral"
+  }
+ ],
+ "df_driftboost": [
+  {
+   "t": "Drift, release, WHOOSH. You figured that out fast.",
+   "e": "excited"
+  },
+  {
+   "t": "That slingshot! Do it again. For science. Not because I liked it.",
+   "e": "flustered"
+  }
+ ],
+ "caveman.df_driftboost": [
+  {
+   "t": "SLIDE. ZOOM. Again!",
+   "e": "feral"
+  }
+ ],
+ "bj_sit": [
+  {
+   "t": "Welcome to my table. I deal, you sweat. Cute arrangement.",
+   "e": "smug"
+  },
+  {
+   "t": "Sit, sit! I shuffled with my own two hands. Mostly bones.",
+   "e": "excited"
+  }
+ ],
+ "bj_deal": [
+  {
+   "t": "Cards up. Eyes on the felt. Not on me. ...Okay, a little on me.",
+   "e": "flustered"
+  },
+  {
+   "t": "Here we go. Feel lucky? I feel lucky FOR you.",
+   "e": "excited"
+  }
+ ],
+ "bj_player_bj": [
+  {
+   "t": "Blackjack?! You're making the dealer look bad. I kind of love it.",
+   "e": "excited"
+  },
+  {
+   "t": "Twenty-one on the deal. Show-off. Do it again.",
+   "e": "shy"
+  }
+ ],
+ "bj_bust": [
+  {
+   "t": "Bust! Ooh. Too many bones in that hand.",
+   "e": "smug"
+  },
+  {
+   "t": "Over 21. Happens. I'll keep your Marrow warm.",
+   "e": "shy"
+  }
+ ],
+ "bj_dealer_bust": [
+  {
+   "t": "I busted?! The deck is against me. You're against me. Rude. Fun.",
+   "e": "flustered"
+  },
+  {
+   "t": "Too many! Ugh. Take your Marrow before I change my mind.",
+   "e": "excited"
+  }
+ ],
+ "bj_win": [
+  {
+   "t": "You beat me. Don't get used to it. ...Get a little used to it.",
+   "e": "shy"
+  },
+  {
+   "t": "Winner! I'm pretending to be sad. It's not working.",
+   "e": "excited"
+  }
+ ],
+ "bj_lose": [
+  {
+   "t": "House wins! I'm the house. I'm a very cute house.",
+   "e": "smug"
+  },
+  {
+   "t": "Mine! Your Marrow, my pile. We can visit it together.",
+   "e": "smug"
+  }
+ ],
+ "bj_push": [
+  {
+   "t": "A tie. We're even. That's almost romantic. For cards.",
+   "e": "flustered"
+  }
+ ],
+ "bj_peeked": [
+  {
+   "t": "Hey! Was my card showing? Eyes UP. On the cards. Up on the cards.",
+   "e": "flustered"
+  }
+ ],
+ "bj_skim_caught": [
+  {
+   "t": "Hands off their winnings! I saw that. Give it back. Now.",
+   "e": "disgusted"
+  }
+ ],
+ "bj_no_marrow": [
+  {
+   "t": "No Marrow, no cards. Fold a run and come back. I'll wait. I'm good at waiting.",
+   "e": "shy"
+  }
+ ],
+ "caveman.bj_deal": [
+  {
+   "t": "CARDS. Little flat bones. Me deal.",
+   "e": "feral"
+  }
+ ],
+ "caveman.bj_lose": [
+  {
+   "t": "Me win! Marrow mine! ...Share later. Maybe.",
+   "e": "feral"
+  }
+ ],
+ "fever.bj_win": [
+  {
+   "t": "You WON! Okay this is the best night of my afterlife, don't tell anyone.",
+   "e": "excited"
+  }
+ ],
+ "he_sit": [
+  {
+   "t": "Hold'em night! I'm not dealing, I'm PLAYING. Watch your chips. And me. Mostly the chips.",
+   "e": "excited"
+  },
+  {
+   "t": "Sit across from me. I want to see your face when you bluff.",
+   "e": "smug"
+  }
+ ],
+ "he_raise": [
+  {
+   "t": "Raise. Don't read into it. ...Or do. I'm unreadable. Except to you.",
+   "e": "smug"
+  },
+  {
+   "t": "I'm raising. My cards are great. Or I'm lying. Exciting, right?",
+   "e": "excited"
+  }
+ ],
+ "he_you_raise": [
+  {
+   "t": "Ooh, bold. Are you bluffing me? Don't answer. I'll know.",
+   "e": "flustered"
+  },
+  {
+   "t": "A raise! You're fun when you're brave.",
+   "e": "shy"
+  }
+ ],
+ "he_fold": [
+  {
+   "t": "I fold. Strategically. Not because you scare me. You don't. Much.",
+   "e": "shy"
+  }
+ ],
+ "he_win": [
+  {
+   "t": "Your pot! I'm clapping. With my hands. Under the table.",
+   "e": "excited"
+  },
+  {
+   "t": "You won that? Fine. I'll remember that face.",
+   "e": "smug"
+  }
+ ],
+ "he_she_wins": [
+  {
+   "t": "Mine! All of it! I'll build a little chip house. You can visit.",
+   "e": "excited"
+  }
+ ],
+ "he_lose": [
+  {
+   "t": "Ouch. The table's cruel tonight. I'm not. I'm nice.",
+   "e": "shy"
+  }
+ ],
+ "he_bust": [
+  {
+   "t": "Out of chips? Buy back in. I'm not done with you.",
+   "e": "flustered"
+  }
+ ],
+ "caveman.he_raise": [
+  {
+   "t": "MORE CHIP. BIG PILE. Me raise.",
+   "e": "feral"
+  }
+ ],
+ "he_closed": [
+  {
+   "t": "Table's closed. I'm counting the jar. Don't watch me count. ...Okay you can watch.",
+   "e": "flustered"
+  },
+  {
+   "t": "You took everything. I need a minute. Thirty, actually. Come back, okay?",
+   "e": "shy"
+  }
+ ],
+ "he_broke_house": [
+  {
+   "t": "You broke me. The house. I mean the house. I'm closing up before you take the chairs.",
+   "e": "flustered"
+  },
+  {
+   "t": "That was all of it?! Okay. Okay. I'm impressed. Don't tell anyone I said that.",
+   "e": "excited"
+  }
+ ],
+ "he_sent_home": [
+  {
+   "t": "One down. You're scary at this. I like scary.",
+   "e": "smug"
+  }
+ ],
+ "caveman.he_broke_house": [
+  {
+   "t": "NO MORE CHIP. You take all. Me... respect. Me go count bone.",
+   "e": "feral"
+  }
+ ],
+ "fever.he_broke_house": [
+  {
+   "t": "You cleaned me OUT. Ha! I don't even care. That was the best thing I've seen all night.",
+   "e": "excited"
+  }
+ ],
+ "bj_split": [
+  {
+   "t": "Splitting? Two hands, twice the trouble. I like trouble.",
+   "e": "smug"
+  },
+  {
+   "t": "Two hands. Okay. I'll watch both. Closely.",
+   "e": "shy"
+  }
+ ],
+ "caveman.bj_split": [
+  {
+   "t": "TWO HAND. Two bone. Good.",
+   "e": "feral"
+  }
+ ],
+ "df_boss": [
+  {
+   "t": "That's not a jet. That's a building that flies. With a laser. Stay FAST.",
+   "e": "flustered"
+  },
+  {
+   "t": "Big one! When its cannon locks, floor it and turn hard. Don't fly straight at it!",
+   "e": "excited"
+  }
+ ],
+ "df_boss_down": [
+  {
+   "t": "WE GOT IT! The whole flying building! I'm shaking. Happy shaking.",
+   "e": "excited"
+  },
+  {
+   "t": "Down it goes. You flew that like you meant it. ...I noticed.",
+   "e": "shy"
+  }
+ ],
+ "caveman.df_boss": [
+  {
+   "t": "BIG BIRD. FOUR SPIN. BLUE FIRE. GO FAST.",
+   "e": "feral"
+  }
+ ],
+ "caveman.df_boss_down": [
+  {
+   "t": "BIG BIRD FALL. MOAR BONEZ.",
+   "e": "feral"
+  }
+ ],
+ "df_boss_phase2": [
+  {
+   "t": "It's MAD now. Good. Mad things miss. ...Mostly.",
+   "e": "excited"
+  },
+  {
+   "t": "Two rotors down and it's STILL flying? Rude. Keep shooting the spinny parts.",
+   "e": "flustered"
+  }
+ ],
+ "df_beam_ko": [
+  {
+   "t": "Ow. That was a whole building's worth of laser. ...Rematch? I want a rematch.",
+   "e": "flustered"
+  },
+  {
+   "t": "We got LASERED. The bones are fine. I checked. Twice. Go again with me?",
+   "e": "shy"
+  }
+ ],
+ "caveman.df_boss_phase2": [
+  {
+   "t": "BIRD ANGRY. BIRD LIMP. HIT SPIN THINGS.",
+   "e": "feral"
+  }
+ ],
+ "caveman.df_beam_ko": [
+  {
+   "t": "BLUE FIRE BITE. OOGH. AGAIN.",
+   "e": "feral"
+  }
+ ]
+}

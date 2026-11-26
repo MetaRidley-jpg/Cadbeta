@@ -1,0 +1,79 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/pool/pool_game.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/pool/pool_table.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/pool/pool_power.gd" id="3"]
+
+[node name="PoolGame" type="VBoxContainer"]
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+script = ExtResource("1")
+
+[node name="MatchBar" type="PanelContainer" parent="."]
+layout_mode = 2
+theme_type_variation = &"Card"
+
+[node name="HBox" type="HBoxContainer" parent="MatchBar"]
+layout_mode = 2
+
+[node name="YouLabel" type="Label" parent="MatchBar/HBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"AccentLabel"
+text = "YOU  solids  7"
+
+[node name="WagerLabel" type="Label" parent="MatchBar/HBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"NamePlate"
+text = "FREE PLAY"
+horizontal_alignment = 1
+
+[node name="HerLabel" type="Label" parent="MatchBar/HBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"AccentLabel"
+text = "7  stripes  HER"
+horizontal_alignment = 2
+
+[node name="QuitButton" type="Button" parent="MatchBar/HBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 44)
+layout_mode = 2
+theme_type_variation = &"GhostButton"
+text = "QUIT"
+
+[node name="PoolTable" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("2")
+
+[node name="Controls" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="NudgeLeft" type="Button" parent="Controls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+theme_type_variation = &"GhostButton"
+theme_override_font_sizes/font_size = 28
+text = "<"
+
+[node name="PowerStrip" type="Control" parent="Controls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+size_flags_horizontal = 3
+script = ExtResource("3")
+
+[node name="NudgeRight" type="Button" parent="Controls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+theme_type_variation = &"GhostButton"
+theme_override_font_sizes/font_size = 28
+text = ">"

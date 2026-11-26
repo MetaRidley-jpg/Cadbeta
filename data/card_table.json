@@ -1,0 +1,173 @@
+{
+ "_readme": "Card table: what each manager does at the blackjack table ('funny business'). event = what happens (see BlackjackPage.EVENTS). sit = line when they take a seat. lines = said when the event fires. Lines play in dialogue slot 2 (manager box). Cadavire's dealer lines are in dialogue.json (bj_*). raise = Hold'em line when they raise.",
+ "broth": {
+  "event": "peek",
+  "sit": [
+   "Saved you a seat. And a bowl. The bowl is for later."
+  ],
+  "lines": [
+   "Oops! My ladle bumped her hole card. You... saw nothing. Wink.",
+   "Psst. Look at her card. I tipped it. For you. Only for you."
+  ],
+  "raise": [
+   "Raise! Wait. Not against you. I'd never. This is for the soup."
+  ],
+  "broke": [
+   "Out of chips. That's fine. I'll go home and make more soup. Soup is my chips.",
+   "I lost to you. That's the best way to lose. Bye. Soup later."
+  ]
+ },
+ "xylo": {
+  "event": "burn",
+  "sit": [
+   "I shall play the cards. And then the table. And then the building."
+  ],
+  "lines": [
+   "I'll just... take this card. Off the top. Mine now. Everything will be mine.",
+   "A burn card! In MY key. Minor. Ominous."
+  ],
+  "raise": [
+   "I raise. Crescendo. Fortissimo. Your chips, my chips."
+  ],
+  "broke": [
+   "My final movement. A dramatic exit. Do not applaud. Applaud a little.",
+   "Silence. The rest is silence. I'm going home."
+  ]
+ },
+ "crusher": {
+  "event": "count",
+  "sit": [
+   "Counting's just inventory with extra steps."
+  ],
+  "lines": [
+   "Shoe's running {hint}, boss. Trust the math.",
+   "My gut and my calculator both say {hint}."
+  ],
+  "raise": [
+   "Numbers say raise. I listen to numbers."
+  ],
+  "broke": [
+   "Inventory: zero. I'm clocking out. Don't follow me.",
+   "Hydraulics are out of pressure. Going home to recharge."
+  ]
+ },
+ "dogpark": {
+  "event": "hide",
+  "sit": [
+   "Woof. I mean: I am here in a professional capacity."
+  ],
+  "lines": [
+   "*hides one of your chips under the table* For safekeeping. Very legal.",
+   "Good boy is holding a chip. In his mouth. As a reserve fund."
+  ],
+  "raise": [
+   "Raise! *tail wagging* I mean. Raise, professionally."
+  ],
+  "broke": [
+   "*sad tail* I'm out. I'm going home. Good game. Good... you.",
+   "No more chips. I'll go home and lie on the floor professionally."
+  ]
+ },
+ "foundry": {
+  "event": "audit",
+  "sit": [
+   "Just observing. Not an auditor. Do not check my badge."
+  ],
+  "lines": [
+   "This hand is now under... casual review. If you bust, the house was irregular.",
+   "I'm flagging this hand. For no reason. Play on."
+  ],
+  "raise": [
+   "Raising. For research. On how you react."
+  ],
+  "broke": [
+   "My research is done. The results: you are very good. Going home.",
+   "Observation concluded. Subject took all my chips."
+  ]
+ },
+ "carwash": {
+  "event": "bottom",
+  "sit": [
+   "Bubbles Moretti, at your service. My hands are clean. I wash cars."
+  ],
+  "lines": [
+   "I'll help her deal. From the bottom. It's where the good cards sleep.",
+   "Sleight of hand? Nah. Sleight of soap."
+  ],
+  "raise": [
+   "Bubbles raises. Bubbles always raises."
+  ],
+  "broke": [
+   "Bubbles is cleaned out. Bubbles respects that. Bubbles goes home.",
+   "You washed me. Nobody washes Bubbles."
+  ]
+ },
+ "merch": {
+  "event": "clout",
+  "sit": [
+   "We are LIVE. Say hi to the chat. Win something, it's good content."
+  ],
+  "lines": [
+   "I'm filming this hand. If you win, the chat sends a tip. 1 Marrow. Very generous chat.",
+   "Chat says 'W'. Make it a W."
+  ],
+  "raise": [
+   "Raise for the content. Chat, watch this."
+  ],
+  "broke": [
+   "Ending the stream. Chat, we got cooked. Go follow them instead.",
+   "I'm out. Clip it. That was content."
+  ]
+ },
+ "refinery": {
+  "event": "snack",
+  "sit": [
+   "I don't gamble. I just like the lamp over this table."
+  ],
+  "lines": [
+   "Have you tried the felt? Smells like 1998. Wonderful.",
+   "I'm not playing. I'm vibing. Deal me out of the deal."
+  ],
+  "raise": [
+   "Oh, I'll raise. I like the sound chips make."
+  ],
+  "broke": [
+   "Out of chips. I'll go home and look at a different lamp.",
+   "I wasn't gambling. I was donating. To you."
+  ]
+ },
+ "bank": {
+  "event": "count",
+  "sit": [
+   "I've run the numbers on this table. And on you. Mostly the table."
+  ],
+  "lines": [
+   "Projected next card: {hint}. Past results do not guarantee... anything.",
+   "The ledger says {hint}. The ledger is never wrong. I died once, though."
+  ],
+  "raise": [
+   "A calculated raise. Everything I do is calculated. Even dying."
+  ],
+  "broke": [
+   "The numbers say I go home. I always listen to the numbers.",
+   "Liquidity: none. I'll see you in thirty minutes. Exactly thirty."
+  ]
+ },
+ "reactor": {
+  "event": "skim",
+  "sit": [
+   "Just sitting. Containing myself. For now."
+  ],
+  "lines": [
+   "Nice pot. Shame if some of it... leaked. Into my pocket.",
+   "I'm taking a small containment fee from your winnings. Standard."
+  ],
+  "raise": [
+   "Raise. Pressure's building. Mine's fine. Yours?"
+  ],
+  "broke": [
+   "Containment breach. My stack, I mean. Going home to cool off.",
+   "Pressure released. All of it. To you."
+  ]
+ }
+}

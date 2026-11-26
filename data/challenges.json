@@ -1,0 +1,306 @@
+{
+ "_readme": "Challenges grid (Smash Bros. Brawl style). 4 rows x 32 columns. Every cell not listed in 'panels' is an empty window (no design yet). A panel: col 0-31, row 0-3, gold (true = pays a Golden Bone instead of a normal reward), cond = {stat, value}, text = the condition shown to the player, reward = id from 'rewards' (gold panels have none). Stats: see Challenges.stat(). Reward types: art (file + credits, zoom/pan viewer), tint (color overlay on Cadavire, stacks with outfits), ship (dogfight jet; strip name in art/stacks), table (card-table skin: felt + rim colors).",
+ "rows": 4,
+ "cols": 32,
+ "rewards": {
+  "art_boneyard": {
+   "type": "art",
+   "name": "Art: The Bone Yard",
+   "file": "res://art/gallery/placeholder_01.png",
+   "credits": "Placeholder art. Final piece: T."
+  },
+  "art_pinup": {
+   "type": "art",
+   "name": "Art: Pilot Pin-up",
+   "file": "res://art/gallery/placeholder_02.png",
+   "credits": "Placeholder art. Final piece: T."
+  },
+  "art_volcano": {
+   "type": "art",
+   "name": "Art: Ash Over the Islands",
+   "file": "res://art/gallery/placeholder_03.png",
+   "credits": "Placeholder art. Final piece: T."
+  },
+  "tint_moss": {
+   "type": "tint",
+   "name": "Tint: Grave Moss",
+   "color": "6bd66b"
+  },
+  "tint_fever": {
+   "type": "tint",
+   "name": "Tint: Fever Pink",
+   "color": "ff3d8b"
+  },
+  "tint_ecto": {
+   "type": "tint",
+   "name": "Tint: Ectoplasm",
+   "color": "43e6d8"
+  },
+  "tint_bogiron": {
+   "type": "tint",
+   "name": "Tint: Bog Iron",
+   "color": "b0643a"
+  },
+  "ship_crimson": {
+   "type": "ship",
+   "name": "Jet: Crimson Fang",
+   "strip": "jet_crimson"
+  },
+  "ship_ghost": {
+   "type": "ship",
+   "name": "Jet: Ghost Wing",
+   "strip": "jet_ghost"
+  },
+  "table_bone": {
+   "type": "table",
+   "name": "Table: Bone White",
+   "felt": "e6dcc4",
+   "rim": "6e4a2e"
+  },
+  "table_midnight": {
+   "type": "table",
+   "name": "Table: Midnight",
+   "felt": "1d2a5a",
+   "rim": "c8a040"
+  },
+  "table_rot": {
+   "type": "table",
+   "name": "Table: Royal Rot",
+   "felt": "5a2a6e",
+   "rim": "1a1410"
+  },
+  "table_jar": {
+   "type": "table",
+   "name": "Table: Tip Jar Brass",
+   "felt": "2e5a3a",
+   "rim": "b08a3c"
+  },
+  "tint_bluff": {
+   "type": "tint",
+   "name": "Tint: Poker Face",
+   "color": "9a8cff"
+  }
+ },
+ "panels": [
+  {
+   "id": "c_first_k",
+   "col": 1,
+   "row": 1,
+   "cond": {
+    "stat": "total_bones",
+    "value": 1000
+   },
+   "text": "Earn 1,000 bones in total.",
+   "reward": "art_boneyard"
+  },
+  {
+   "id": "c_25_any",
+   "col": 2,
+   "row": 2,
+   "cond": {
+    "stat": "owned_max",
+    "value": 25
+   },
+   "text": "Own 25 of any one building.",
+   "reward": "tint_moss"
+  },
+  {
+   "id": "c_manager",
+   "col": 0,
+   "row": 2,
+   "cond": {
+    "stat": "managers",
+    "value": 1
+   },
+   "text": "Hire your first manager.",
+   "reward": "table_bone"
+  },
+  {
+   "id": "c_fever",
+   "col": 3,
+   "row": 1,
+   "cond": {
+    "stat": "fevers",
+    "value": 1
+   },
+   "text": "Fill the Fever meter.",
+   "reward": "tint_fever"
+  },
+  {
+   "id": "c_pool_win",
+   "col": 4,
+   "row": 3,
+   "cond": {
+    "stat": "pool_wins",
+    "value": 1
+   },
+   "text": "Beat Cadavire at pool.",
+   "reward": "table_midnight"
+  },
+  {
+   "id": "c_exquisite",
+   "col": 5,
+   "row": 0,
+   "cond": {
+    "stat": "exquisite",
+    "value": 1
+   },
+   "text": "She taste-tests an exquisite bone.",
+   "reward": "art_pinup"
+  },
+  {
+   "id": "g_fold",
+   "col": 6,
+   "row": 2,
+   "gold": true,
+   "cond": {
+    "stat": "folds",
+    "value": 1
+   },
+   "text": "Fold for the first time."
+  },
+  {
+   "id": "c_df_3",
+   "col": 8,
+   "row": 1,
+   "cond": {
+    "stat": "df_best_wave",
+    "value": 3
+   },
+   "text": "Survive 3 dogfight waves.",
+   "reward": "ship_crimson"
+  },
+  {
+   "id": "c_gifts",
+   "col": 9,
+   "row": 3,
+   "cond": {
+    "stat": "gifts",
+    "value": 3
+   },
+   "text": "Give Cadavire 3 gifts.",
+   "reward": "tint_ecto"
+  },
+  {
+   "id": "c_level_10",
+   "col": 11,
+   "row": 0,
+   "cond": {
+    "stat": "level",
+    "value": 10
+   },
+   "text": "Reach level 10.",
+   "reward": "art_volcano"
+  },
+  {
+   "id": "g_asteroid",
+   "col": 13,
+   "row": 2,
+   "gold": true,
+   "cond": {
+    "stat": "df_best_wave",
+    "value": 5
+   },
+   "text": "Survive the asteroid wave (wave 5)."
+  },
+  {
+   "id": "c_costumes",
+   "col": 15,
+   "row": 1,
+   "cond": {
+    "stat": "costumes",
+    "value": 3
+   },
+   "text": "Own 3 outfits.",
+   "reward": "tint_bogiron"
+  },
+  {
+   "id": "c_df_score",
+   "col": 17,
+   "row": 3,
+   "cond": {
+    "stat": "df_best_score",
+    "value": 5000
+   },
+   "text": "Score 5,000 in one dogfight.",
+   "reward": "ship_ghost"
+  },
+  {
+   "id": "c_loyal_3",
+   "col": 19,
+   "row": 0,
+   "cond": {
+    "stat": "loyalty_max",
+    "value": 3
+   },
+   "text": "A manager reaches loyalty tier 3.",
+   "reward": "table_rot"
+  },
+  {
+   "id": "g_rank",
+   "col": 21,
+   "row": 2,
+   "gold": true,
+   "cond": {
+    "stat": "rank",
+    "value": 1
+   },
+   "text": "Reach prestige rank 1."
+  },
+  {
+   "id": "g_loyal_5",
+   "col": 26,
+   "row": 1,
+   "gold": true,
+   "cond": {
+    "stat": "loyalty_max",
+    "value": 5
+   },
+   "text": "A manager reaches loyalty tier 5."
+  },
+  {
+   "id": "g_hundred",
+   "col": 30,
+   "row": 3,
+   "gold": true,
+   "cond": {
+    "stat": "owned_min",
+    "value": 100
+   },
+   "text": "Own 100 of every building."
+  },
+  {
+   "id": "c_bj_5",
+   "col": 7,
+   "row": 0,
+   "cond": {
+    "stat": "bj_wins",
+    "value": 5
+   },
+   "text": "Win 5 hands of blackjack.",
+   "reward": "table_jar"
+  },
+  {
+   "id": "c_he_home",
+   "col": 10,
+   "row": 2,
+   "cond": {
+    "stat": "he_sent_home",
+    "value": 1
+   },
+   "text": "Send a manager home broke at Hold'em.",
+   "reward": "tint_bluff"
+  },
+  {
+   "id": "g_house",
+   "col": 23,
+   "row": 3,
+   "gold": true,
+   "cond": {
+    "stat": "he_house_broke",
+    "value": 1
+   },
+   "text": "Break the house: take all of Cadavire's chips."
+  }
+ ]
+}
