@@ -276,3 +276,12 @@ T: "Make a scoring system for the replay shots with events and multiple planes i
 - Debug builds show the pick in the top bar: "DIRECTOR 3/3 INTO_FRAME 412 (plan 693, cost 6/6)".
 - Tests: a second plane in frame scores more (70 → 140), a blast more again (190); recent shots lose points; every plan is within budget; over 12 replays the history rotates through all 7 shot types.
 - GIFs: `tools/demos/director_wave_ko.gif`, `director_beam_ko.gif`, `director_boss_down.gif`.
+
+## Slice 16i: iPhone web build (2026-11-26)
+T: "iPhone and we will use web route" (no PC available).
+- `export_presets.cfg`: preset **Web**. Threads OFF (runs on plain GitHub Pages, no special headers). Includes `data/*.json` and `art/stacks/*.json` (loaded by path at runtime). Excludes `tools/`, `tests/`, `build/`.
+- `project.godot`: `renderer/rendering_method.web="gl_compatibility"` (WebGL 2). Desktop and phone builds stay on "mobile".
+- `.github/workflows/web.yml`: on push to `main`, install Godot 4.7.2 + web templates, run the rule and dogfight tests (a failure blocks the publish), export, publish to GitHub Pages.
+- `.gitignore`: `export_presets.cfg` and `*.import` are now committed (Godot 4 needs the import settings); `build/` and `tools/demos/` are ignored.
+- Local check: `godot --headless --path . --export-pack "Web" build/test.pck`, then run that pack alone from an empty folder with `--main-pack`. Menu and boss wave both run, no script errors.
+- One-time repo setup: Settings → Pages → Source: "GitHub Actions".
