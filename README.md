@@ -293,3 +293,14 @@ T (first test on the iPhone web build): "Scrolling doesn't work on mobile, conde
 - **Fix:** `main.gd _touch_scroll_fix()`: every Control inside a ScrollContainer that STOPs input now PASSes it up (hooked on `SceneTree.node_added`, so rows built later are covered). Godot still makes a short tap a press; a drag past the 14 px deadzone scrolls and presses nothing.
 - **Play home screen:** 3x2 app icons (`scripts/play_icon.gd`): Pool, Dogfight (best-wave badge), Blackjack, Hold'em (lock + countdown when the table is closed), Pinball (SOON, locked), Options. One tap = play. Options holds jet / ASSIST / KO REPLAY / table skin / bet table / pool note. Debug flag `--playopts`.
 - **Test:** `tests/touch_test.tscn` (25 checks) sends real ScreenTouch / ScreenDrag events: drags on cards and buttons scroll every overflowing list and press nothing; the Play home fits one screen; taps on icons open Options and start the dogfight. Added to the web build gate.
+
+## Slice 16k: iPhone notes round 2 (2026-11-26)
+T: "The 8 ball charge meter is in the app swipe away spot so it doesn't work / The mobile replays can remove the cinematic bars and just be a replay, pc will still have them / Make the auto targeting a little wider than the reticle shows / Poker games are not stable at all / Weather should be random and you can make the text that appears in dogfight yellow with black outlines and fade faster". T on poker: "Freezes / stops, Crashes entire app shortly after launch".
+- **Poker crash:** the card room sent 8,500-14,900 draw calls per frame (every stack slice copied per pixel of rise, each copy split into up to 36 polygons, each a draw call); room draw code 47-79 ms per frame. Now one triangle batch per stack/quad (copies placed by 2D interpolation between two projected rows): ~60-120 draw calls, 3-5 ms. Same look (before/after frames). Memory was flat (no leak). Guard: `cards_test` times the room draw (< 15 ms).
+- **Hold'em stress** (`tests/holdem_stress.tscn`, optional, slow): real-time play over many seeds; no lost chips or hangs in normal play. `open()` now clears the step queue.
+- **Phones:** `Game.is_phone()` (native mobile, iPhone/Android browser, or `--phone`). Web phones keep 4.5% of the screen height free at the bottom (home-bar swipe), so the pool power strip works.
+- **Replays on phones:** no bars, no film caption, a yellow REPLAY tag; the director scores shots on the full frame. PC keeps the 2.39:1 strip.
+- **Auto-targeting:** gun cone 11° → 13°; the idle reticle is sized from the cone (cone ≥ 1.2x the reticle, reticle capped at 56 px).
+- **Random weather:** each wave rolls clear / rain / fog+thunder / eruption / night (no repeats in a row); title + Cadavire line follow it. The asteroid wave keeps the impact sky; demos keep the fixed order.
+- **Dogfight text:** yellow (#ffe14a) with black outline; messages hold 65% as long (min 0.45 s) and fade in 0.25 s.
+- Tests: dogfight 145, cards 57.

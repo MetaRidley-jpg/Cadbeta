@@ -105,29 +105,44 @@ func _p2(p: Vector3) -> Vector2:
 
 ## A flat textured rectangle on a horizontal plane, split into an n x n grid so the
 ## texture follows the perspective. c = center, ax/az = half-axes (world), uv = region.
+## Sent as ONE triangle batch (was one draw call per grid cell).
 func _quad(tex: Texture2D, c: Vector3, ax: Vector3, az: Vector3, uv: Rect2, mod := Color.WHITE, n := 4) -> void:
-	for i in n:
-		for j in n:
-			var u0 := float(i) / n
-			var u1 := float(i + 1) / n
-			var v0 := float(j) / n
-			var v1 := float(j + 1) / n
-			var pts := PackedVector2Array()
-			var uvs := PackedVector2Array()
-			var ok := true
-			for q in [Vector2(u0, v0), Vector2(u1, v0), Vector2(u1, v1), Vector2(u0, v1)]:
-				var w: Vector3 = c + ax * (q.x * 2.0 - 1.0) + az * (q.y * 2.0 - 1.0)
-				var pr := project(w)
-				if pr.z <= 0.0:
-					ok = false
-					break
-				pts.append(Vector2(pr.x, pr.y))
-				uvs.append(uv.position + uv.size * q)
-			if ok:
-				draw_polygon(pts, PackedColorArray([mod]), uvs, tex)
+	if tex == null:
+		return
+	var g := n + 1
+	var pts := PackedVector2Array()
+	pts.resize(g * g)
+	var uvs := PackedVector2Array()
+	uvs.resize(g * g)
+	for j in g:
+		for i in g:
+			var q := Vector2(float(i) / n, float(j) / n)
+			var pr := project(c + ax * (q.x * 2.0 - 1.0) + az * (q.y * 2.0 - 1.0))
+			if pr.z <= 0.0:
+				return                     # a corner behind the camera: skip (as before)
+			pts[j * g + i] = Vector2(pr.x, pr.y)
+			uvs[j * g + i] = uv.position + uv.size * q
+	var idx := PackedInt32Array()
+	for j in n:
+		for i in n:
+			var v := j * g + i
+			idx.append_array([v, v + 1, v + g + 1, v, v + g + 1, v + g])
+	var cols := PackedColorArray()
+	cols.resize(g * g)
+	cols.fill(mod)
+	RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), idx, pts, cols, uvs, PackedInt32Array(), PackedFloat32Array(), tex.get_rid())
+
+## Most copies used to fill the gap between two slices. 1 copy per STACK_STEP px of rise.
+const STACK_STEP := 1.0
+const STACK_MAX_COPIES := 40
 
 ## A sprite stack in perspective. heights[k] = world height of slice k.
 ## dir = the way the art's "front" (image down) faces in the world.
+## Perf (2026-11-26, iPhone crash): the whole stack is ONE triangle batch. Each slice's
+## grid is projected twice (its own height and the next slice's), and the gap-filling
+## copies are placed by 2D interpolation between the two (a vertical world line stays a
+## straight screen line, so the copies still land on it). Before: up to 40 copies x 36
+## cells = one draw call per cell, ~13,000 draw calls per frame for the table.
 func _stack(name: String, base: Vector3, dir: Vector3, px: float, heights: Array, mod := Color.WHITE, grid := 3) -> void:
 	var st := StackDraw.strip(name)
 	if st.is_empty():
@@ -140,19 +155,61 @@ func _stack(name: String, base: Vector3, dir: Vector3, px: float, heights: Array
 	var right := Vector3(dir.z, 0, -dir.x)
 	var ax := right * w * px * 0.5
 	var az := dir * h * px * 0.5
+	var g := grid + 1
+	var pts := PackedVector2Array()
+	var uvs := PackedVector2Array()
+	var idx := PackedInt32Array()
+	var p0 := PackedVector2Array()
+	var p1 := PackedVector2Array()
+	p0.resize(g * g)
+	p1.resize(g * g)
+	var cell_idx := PackedInt32Array()
+	for j in grid:
+		for i in grid:
+			var v := j * g + i
+			cell_idx.append_array([v, v + 1, v + g + 1, v, v + g + 1, v + g])
 	for k in n:
 		var uv := Rect2(k * w / tw, 0.0, w / tw, 1.0)
 		var y0: float = heights[k]
 		var y1: float = heights[k + 1] if k + 1 < n else y0
-		# fill the gap to the next slice: one copy per screen pixel of rise (max 40)
-		var a := project(base + Vector3(0, y0, 0))
-		var b := project(base + Vector3(0, y1, 0))
-		var copies := 1
-		if a.z > 0.0 and b.z > 0.0:
-			copies = clampi(int(ceil(absf(a.y - b.y))), 1, 40)
+		var ok := true
+		for j in g:
+			for i in g:
+				var off := ax * (float(i) / grid * 2.0 - 1.0) + az * (float(j) / grid * 2.0 - 1.0)
+				var a := project(base + off + Vector3(0, y0, 0))
+				var b := project(base + off + Vector3(0, y1, 0))
+				if a.z <= 0.0 or b.z <= 0.0:
+					ok = false
+					break
+				p0[j * g + i] = Vector2(a.x, a.y)
+				p1[j * g + i] = Vector2(b.x, b.y)
+			if not ok:
+				break
+		if not ok:
+			continue
+		var rise := 0.0
+		for v in g * g:
+			rise = maxf(rise, absf(p0[v].y - p1[v].y))
+		var copies := clampi(int(ceil(rise / STACK_STEP)), 1, STACK_MAX_COPIES)
+		var slice_uv := PackedVector2Array()
+		slice_uv.resize(g * g)
+		for j in g:
+			for i in g:
+				slice_uv[j * g + i] = uv.position + uv.size * Vector2(float(i) / grid, float(j) / grid)
 		for c in copies:
-			var y := lerpf(y0, y1, float(c) / copies)
-			_quad(tex, base + Vector3(0, y, 0), ax, az, uv, mod, grid)
+			var t := float(c) / copies
+			var first := pts.size()
+			for v in g * g:
+				pts.append(p0[v].lerp(p1[v], t))
+			uvs.append_array(slice_uv)
+			for e in cell_idx:
+				idx.append(first + e)
+	if pts.is_empty():
+		return
+	var cols := PackedColorArray()
+	cols.resize(pts.size())
+	cols.fill(mod)
+	RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), idx, pts, cols, uvs, PackedInt32Array(), PackedFloat32Array(), tex.get_rid())
 
 ## A flat image standing up and facing the camera, bottom-centered on p.
 func _billboard(tex: Texture2D, p: Vector3, height: float, mod := Color.WHITE) -> Rect2:
@@ -208,9 +265,16 @@ func card_spot(who: String, i: int, n: int) -> Vector3:
 # =====================================================================
 # Draw
 # =====================================================================
+var draw_ms := 0.0           # last frame's room draw cost (debug / tests)
+
 func _draw() -> void:
 	if page == null:
 		return
+	var _t0 := Time.get_ticks_usec()
+	_draw_room()
+	draw_ms = (Time.get_ticks_usec() - _t0) / 1000.0
+
+func _draw_room() -> void:
 	_setup_cam()
 	var tc := Challenges.table_colors()
 	# room: warm lamp glow behind the table, dark floor

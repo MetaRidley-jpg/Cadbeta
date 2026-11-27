@@ -207,6 +207,9 @@ func attacker_pos(g: Node) -> Vector3:
 ## fancy shots cost more, so it saves them for the coolest moments.
 const JET_M := 9.0
 const STRIP := 2.39
+## Phones (T, 2026-11-26): "The mobile replays can remove the cinematic bars and just be a
+## replay, pc will still have them". True = the shot is judged on the whole screen.
+var full_frame := false
 const SHOTS_EARLY := ["side", "overhead", "into_frame", "front", "chase", "orbit"]
 const SHOTS_KO := ["side", "low", "front", "overhead", "into_frame"]
 const SHOT_COST := {"side": 1, "chase": 1, "front": 2, "orbit": 2, "low": 2, "overhead": 3, "into_frame": 3}
@@ -348,7 +351,7 @@ func _shot_cam(g: Node, kind: String, px: float, slot: int, u: float, v: Vector3
 	cam.y = maxf(cam.y, g.world.ground_y(cam) + 12.0)
 	return [cam, look, hfov, up]
 
-## Project p into the 2.39:1 strip of a camera: [in frame, size in px of a 9 m jet].
+## Project p into the 2.39:1 strip (or the full frame on phones) of a camera: [in frame, size in px of a 9 m jet].
 func _in_strip(g: Node, c: Array, p: Vector3) -> Array:
 	var cam: Vector3 = c[0]
 	var fwd := ((c[1] as Vector3) - cam).normalized()
@@ -364,7 +367,7 @@ func _in_strip(g: Node, c: Array, p: Vector3) -> Array:
 	var f := (vs.x * 0.5) / tan(deg_to_rad(float(c[2])) * 0.5)
 	var x := rel.dot(rgt) / z * f
 	var y := rel.dot(upv) / z * f
-	var inside := absf(x) < vs.x * 0.47 and absf(y) < vs.x / STRIP * 0.47
+	var inside := absf(x) < vs.x * 0.47 and absf(y) < (vs.y if full_frame else vs.x / STRIP) * 0.47
 	return [inside, f * JET_M / z]
 
 ## Score one candidate shot by test-flying it through its slot (see the W_ weights).

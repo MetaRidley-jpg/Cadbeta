@@ -228,5 +228,18 @@ func _ready() -> void:
 	page.leave()
 	check(not main.in_minigame and main.get_node("%NavBar").visible, "LEAVE TABLE returns to the game")
 
+	# ---------------- card room draw cost (iPhone crash, 2026-11-26)
+	# The room used to send ~13,000 draw calls a frame (one per stack cell copy). Each stack is
+	# now one triangle batch; time the room's own draw code with the room visible.
+	var room = page.table
+	room.page = page
+	room.size = Vector2(720, 700)
+	var t_room := Time.get_ticks_usec()
+	for k in 5:
+		room._draw_room()
+	var room_ms := (Time.get_ticks_usec() - t_room) / 5000.0
+	print("card room draw: %.1f ms" % room_ms)
+	check(room_ms < 15.0, "card room draw code is cheap (%.1f ms, was ~50-80 ms)" % room_ms)
+
 	print("CARD TESTS: %d passed, %d failed" % [passes, fails])
 	get_tree().quit(1 if fails > 0 else 0)

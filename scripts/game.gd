@@ -72,6 +72,16 @@ var scene_active := false     # a manager scene is playing: no taste tests or ch
 var minigame_active := false  # a minigame is playing: no taste tests or idle chatter
 var pending_offline := Vector2.ZERO   # (bones, seconds) for the welcome-back popup
 var autosave_enabled := true   # tests switch this off
+
+## Phone check (2026-11-26): native mobile export OR the web build on an iPhone / Android
+## browser. `--phone` (debug) forces it on a PC for screenshots and tests.
+static var force_phone := false
+static func is_phone() -> bool:
+	return force_phone or OS.has_feature("mobile") or OS.has_feature("web_ios") or OS.has_feature("web_android")
+
+## Web on a phone: the browser reports no safe area, but the bottom edge belongs to the
+## home bar / app-switch swipe. Keep this share of the screen height free at the bottom.
+const WEB_HOME_BAR := 0.045
 var rng := RandomNumberGenerator.new()
 
 var _idle_time := 0.0

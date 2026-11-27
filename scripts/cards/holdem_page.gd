@@ -128,6 +128,7 @@ func _step() -> float:
 # =====================================================================
 func open(seed_value := -1) -> void:
 	he = Holdem.new(seed_value)
+	_queue.clear()             # never carry steps from an old table into a new one
 	seats = BlackjackPage_pick_seats()
 	players.clear()
 	board.clear()

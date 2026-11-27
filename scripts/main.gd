@@ -194,6 +194,22 @@ func show_page(i: int) -> void:
 ## finger drag, so a list only scrolled when you touched an empty gap. Every card,
 ## button and row inside a ScrollContainer now PASSes input up. Godot still treats a
 ## short tap as a press, and a drag past the scroll deadzone cancels the press.
+## Debug: --memlog prints memory, objects, draw calls and frame time every 2 s.
+func _memlog() -> void:
+	while is_inside_tree():
+		await get_tree().create_timer(2.0).timeout
+		print("MEM t=%5.1f static=%6.1fMB video=%6.1fMB objects=%d nodes=%d draws=%d prims=%d proc=%.1fms fps=%d room_draw=%.1fms" % [
+			Time.get_ticks_msec() / 1000.0,
+			Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0,
+			Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0,
+			Performance.get_monitor(Performance.OBJECT_COUNT),
+			Performance.get_monitor(Performance.OBJECT_NODE_COUNT),
+			Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
+			Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME),
+			Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0,
+			Performance.get_monitor(Performance.TIME_FPS),
+			(holdem_page.table.draw_ms if holdem_page and holdem_page.visible else (blackjack_page.table.draw_ms if blackjack_page and blackjack_page.visible else 0.0))])
+
 func _touch_scroll_fix(n: Node) -> void:
 	if not (n is Control) or n is ScrollContainer or n is ScrollBar:
 		return
@@ -925,16 +941,23 @@ func _show_offline(amount: float, seconds: float) -> void:
 # =====================================================================
 # Mobile safe area (notch / home bar)
 # =====================================================================
+## T (iPhone web build): "The 8 ball charge meter is in the app swipe away spot so it
+## doesn't work". The web build got no safe area at all, so the pool power strip (a
+## sideways drag) sat on the iOS app-switch swipe. Web phones now keep WEB_HOME_BAR free.
 func _apply_safe_area() -> void:
-	if not OS.has_feature("mobile"):
+	if not Game.is_phone():
 		return
 	var safe := DisplayServer.get_display_safe_area()
 	var win := DisplayServer.window_get_size()
 	if win.y <= 0:
 		return
 	var s := get_viewport_rect().size.y / float(win.y)
-	%Root.offset_top = maxf(0.0, safe.position.y) * s
-	%Root.offset_bottom = -maxf(0.0, win.y - safe.end.y) * s
+	var top := maxf(0.0, safe.position.y) * s
+	var bottom := maxf(0.0, win.y - safe.end.y) * s
+	if not OS.has_feature("mobile"):        # web on a phone (or --phone on PC)
+		bottom = maxf(bottom, get_viewport_rect().size.y * Game.WEB_HOME_BAR)
+	%Root.offset_top = top
+	%Root.offset_bottom = -bottom
 
 # =====================================================================
 # Debug hooks (command line, after "--"):
@@ -948,6 +971,9 @@ func _debug_setup() -> void:
 		args[kv[0]] = kv[1] if kv.size() > 1 else "1"
 	if args.is_empty():
 		return
+	if args.has("phone"):
+		Game.force_phone = true
+		_apply_safe_area()
 	if args.has("shot"):
 		Game.autosave_enabled = false
 	if args.get("state", "") in ["rich", "late"]:
@@ -995,6 +1021,8 @@ func _debug_setup() -> void:
 			for i in Balance.BUILDINGS.size():
 				if Balance.BUILDINGS[i].id == id:
 					Game.loyalty[i] = maxi(Game.loyalty[i], 1 + (2 if id == "broth" else 0))
+	if args.has("memlog"):
+		_memlog()
 	if args.has("cards"):
 		start_cards(int(args.get("bjseed", "-1")))
 		if args.has("fast"):

@@ -16,7 +16,9 @@ const BULLET_SPEED := 950.0
 const BULLET_LIFE := 0.7
 const BULLET_DMG := 5.0
 const FIRE_INTERVAL := 0.07
-const GUN_CONE := deg_to_rad(11.0)
+const GUN_CONE := deg_to_rad(13.0)   # T: "a little wider than the reticle shows" (was 11)
+const RETICLE_TO_CONE := 1.2           # the gun cone is at least 20% wider than the idle reticle
+const RETICLE_MAX := 56.0              # px half-size cap: a cone-sized box (~90 px) hid the jet
 const GUN_RANGE := 650.0
 const ENEMY_BULLET_SPEED := 650.0
 const ENEMY_BULLET_DMG := 3.0
@@ -201,7 +203,9 @@ func _ready() -> void:
 	_lb_label = Label.new()
 	_lb_label.text = "REPLAY"
 	_lb_label.add_theme_font_size_override("font_size", 26)
-	_lb_label.add_theme_color_override("font_color", Color("ff3b3b"))
+	_lb_label.add_theme_color_override("font_color", Color("ffe14a"))
+	_lb_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	_lb_label.add_theme_constant_override("outline_size", 9)
 	_lb_label.visible = false
 	_lb_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_lb_label)
@@ -238,8 +242,11 @@ func start(seed_value := -1) -> void:
 	if seed_value >= 0:
 		rng.seed = seed_value
 		seed(seed_value)
+		weather_rng.seed = seed_value * 7919 + 13
 	else:
 		rng.randomize()
+		weather_rng.randomize()
+	weather_log = []
 	world = DfWorld.new()
 	world.build(rng.randi_range(1, 9999) if seed_value < 0 else seed_value)
 	weather = DfWeather.new()
@@ -272,6 +279,7 @@ func start(seed_value := -1) -> void:
 	boss_st = {}
 	_ko_by = ""
 	replay = DfReplay.new()
+	replay.full_frame = Game.is_phone()
 	_replay_at = -1.0
 	_last_kill = {}
 	_lb = 0.0
@@ -1541,6 +1549,34 @@ func _crash() -> void:
 # =====================================================================
 # Waves + weather
 # =====================================================================
+# ---- Random weather (T, 2026-11-26: "Weather should be random")
+# Each wave rolls its weather; never the same twice in a row. The asteroid wave keeps its
+# "impact" sky (that is the event, not weather). Demos keep the old fixed order.
+const WEATHER_POOL := ["morning", "rain", "storm", "eruption", "night"]
+const WEATHER_TITLE := {"morning": "CLEAR SKIES", "rain": "RAIN ROLLS IN", "storm": "FOG + THUNDER",
+	"eruption": "THE VOLCANO WAKES", "night": "NIGHTFALL"}
+const WEATHER_SAY := {"morning": "", "rain": "df_rain", "storm": "df_storm", "eruption": "df_volcano", "night": "df_storm"}
+var fixed_weather := false          # true = the old scripted order (demos, some tests)
+var weather_rng := RandomNumberGenerator.new()
+var weather_log: Array = []         # presets rolled this match (tests)
+
+func roll_weather() -> String:
+	var last: String = weather_log.back() if not weather_log.is_empty() else ""
+	var pool: Array = WEATHER_POOL.filter(func(p): return p != last)
+	return pool[weather_rng.randi_range(0, pool.size() - 1)]
+
+## The wave's content (enemies, boss, asteroid) with this match's weather applied.
+func wave_plan(w: int) -> Dictionary:
+	var d := wave_def(w)
+	if fixed_weather or demo != "" or d.get("asteroid", false):
+		return d
+	var p := roll_weather()
+	d.preset = p
+	if not d.get("boss", false):
+		d.title = "WAVE %d · %s" % [w, WEATHER_TITLE[p]]
+		d.say = WEATHER_SAY[p]
+	return d
+
 func wave_def(w: int) -> Dictionary:
 	match w:
 		1:
@@ -1559,8 +1595,9 @@ func wave_def(w: int) -> Dictionary:
 
 func _next_wave() -> void:
 	wave += 1
-	_wave_def = wave_def(wave)
-	weather.set_preset(_wave_def.preset)
+	_wave_def = wave_plan(wave)
+	weather_log.append(_wave_def.preset)
+	weather.set_preset(_wave_def.preset, wave == 1)
 	for k in int(_wave_def.fighters):
 		_spawn_enemy("fighter")
 	for k in int(_wave_def.kamikaze):
@@ -2055,8 +2092,10 @@ func _letterbox(delta: float) -> void:
 	_lb = move_toward(_lb, want, delta * 3.5)
 	var e := _lb * _lb * (3.0 - 2.0 * _lb)
 	# KO slow-mo: thin bars (12%). Replay: the bars close to a 2.39:1 strip.
-	var strip_h := (size.y - size.x / LB_RATIO) * 0.5
-	var h := size.y * 0.12 * e
+	# Phones: no bars at all, the replay is full screen with a REPLAY tag (PC keeps the film look).
+	var phone := Game.is_phone()
+	var strip_h := 0.0 if phone else (size.y - size.x / LB_RATIO) * 0.5
+	var h := 0.0 if phone else size.y * 0.12 * e
 	if state == "replay":
 		_lb_strip = move_toward(_lb_strip, 1.0, delta * 2.2)
 	else:
@@ -2070,11 +2109,11 @@ func _letterbox(delta: float) -> void:
 	_lb_bot.position = Vector2(0.0, size.y - h)
 	_lb_bot.size = Vector2(size.x, h)
 	_lb_label.visible = state == "replay"
-	_lb_caption.visible = state == "replay" and se > 0.6
+	_lb_caption.visible = state == "replay" and se > 0.6 and not phone
 	_lb_rule_t.visible = _lb_caption.visible
 	_lb_rule_b.visible = _lb_caption.visible
 	if _lb_label.visible:
-		_lb_label.position = Vector2(24.0, h - 44.0)
+		_lb_label.position = Vector2(24.0, 96.0) if phone else Vector2(24.0, h - 44.0)
 		_lb_label.modulate.a = 0.55 + 0.45 * sin(Time.get_ticks_msec() * 0.008)
 	_lb_director.visible = _lb_caption.visible and OS.is_debug_build()
 	if _lb_director.visible:
@@ -2204,10 +2243,17 @@ func _update_camera(dt: float) -> void:
 		look = _cam_pos + d0.slerp(d1, w) * 100.0
 	render.set_camera_frame(_cam_pos + shake_v, look, _cam_up, _cam_fov)
 
+## T (2026-11-26): dogfight text "yellow with black outlines and fade faster".
+## Messages hold for MSG_TIME of their asked time (min 0.45 s) and fade in the last MSG_FADE s.
+const MSG_TIME := 0.65
+const MSG_FADE := 0.25
+const MSG_YELLOW := Color("ffe14a")
+
 func _show_msg(text: String, time: float, sub := "") -> void:
 	center_msg.text = text
 	center_msg.modulate.a = 1.0
-	_msg_t = time
+	sub_msg.modulate.a = 1.0
+	_msg_t = maxf(0.45, time * MSG_TIME)
 	sub_msg.text = sub
 
 func _update_hud(delta: float) -> void:
@@ -2217,7 +2263,8 @@ func _update_hud(delta: float) -> void:
 	hp_bar.value = player.hp
 	boost_bar.value = player.boost
 	_msg_t -= real
-	center_msg.modulate.a = clampf(_msg_t * 2.0, 0.0, 1.0)
+	center_msg.modulate.a = clampf(_msg_t / MSG_FADE, 0.0, 1.0)
+	sub_msg.modulate.a = 1.0 if sub_msg.text == "LOW FLYING!" else center_msg.modulate.a
 	if _msg_t < 0.0 and sub_msg.text != "LOW FLYING!":
 		sub_msg.text = ""
 	_red_flash = maxf(0.0, _red_flash - real * 2.5)
@@ -2274,7 +2321,7 @@ func _draw_hud() -> void:
 			draw_reticle(sp, hsz, red)
 		else:
 			var ap: Vector2 = render.world_to_screen(player.position + player.forward() * 300.0) * SHRINK
-			draw_reticle(ap, 20.0, Color(red, 0.55))
+			draw_reticle(ap, idle_reticle_size(), Color(red, 0.55))
 		if laser_ready() and laser_target != null:
 			var lp := target_pos(laser_target)
 			var ls: Vector2 = render.world_to_screen(lp) * SHRINK
@@ -2410,6 +2457,11 @@ func _draw_edge_arrow(pos: Vector3, col: Color, rect: Rect2) -> void:
 	for q in tri:
 		small.append(p + (q - p) * 0.72)
 	hud.draw_colored_polygon(small, col)
+
+## Half-size (screen px) of the dim aim reticle: the gun cone on screen / RETICLE_TO_CONE,
+## so a target inside the brackets always locks, with a little room to spare.
+func idle_reticle_size() -> float:
+	return clampf(render.focal * SHRINK * tan(GUN_CONE) / RETICLE_TO_CONE, 20.0, RETICLE_MAX)
 
 func draw_reticle(c: Vector2, h: float, col: Color) -> void:
 	var l := h * 0.5

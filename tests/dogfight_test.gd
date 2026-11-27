@@ -626,5 +626,67 @@ func _ready() -> void:
 	df.stop()
 	Engine.time_scale = 1.0
 
+	# ---------------- slice 16k: T's iPhone notes
+	# random weather: varies across matches, never repeats back to back, asteroid wave keeps "impact"
+	var all_seen := {}
+	var repeats := 0
+	for sd in 8:
+		df.start(200 + sd)
+		df.set_process(false)
+		for wi in 6:
+			df._next_wave()
+			all_seen[df._wave_def.preset] = true
+		for k in range(1, df.weather_log.size()):
+			if df.weather_log[k] == df.weather_log[k - 1] and df.weather_log[k] != "impact":
+				repeats += 1
+		check(df.weather_log[4] == "impact", "asteroid wave keeps the impact sky (%s)" % str(df.weather_log))
+		check(df.wave_plan(6).title.begins_with("WAVE 6 · BOSS"), "boss wave keeps its title")
+		df.stop()
+	check(all_seen.size() >= 5, "weather is random: %d different skies over 8 matches (%s)" % [all_seen.size(), str(all_seen.keys())])
+	check(repeats == 0, "the same weather never runs twice in a row (%d)" % repeats)
+	df.start(1)
+	df.set_process(false)
+	df.demo = "beach"
+	df._next_wave()
+	check(df._wave_def.preset == "morning", "demos keep the fixed weather order")
+	df.demo = ""
+	df.stop()
+	# gun cone wider than the idle reticle
+	df.start(2)
+	df.set_process(false)
+	var cone_px: float = df.render.focal * df.SHRINK * tan(df.GUN_CONE)
+	check(cone_px > df.idle_reticle_size() * 1.15, "auto-target cone (%.0f px) is wider than the reticle (%.0f px)" % [cone_px, df.idle_reticle_size()])
+	check(df.GUN_CONE > deg_to_rad(11.5), "gun cone widened from 11 deg")
+	# message timing: shorter hold, quick fade
+	df._show_msg("TEST", 2.5, "sub")
+	check(df._msg_t < 2.0 and df._msg_t >= 0.45, "messages hold shorter (%.2f s for a 2.5 s ask)" % df._msg_t)
+	var mc: Color = df.center_msg.get_theme_color("font_color")
+	check(absf(mc.r - 1.0) < 0.01 and absf(mc.g - 0.882) < 0.01 and absf(mc.b - 0.29) < 0.01, "dogfight text is yellow (%s)" % str(mc))
+	check(df.center_msg.get_theme_constant("outline_size") >= 8, "dogfight text has a black outline")
+	df.stop()
+	# phones: no cinematic bars, the replay director judges the full frame
+	Game.force_phone = true
+	df.start(3)
+	df.set_process(false)
+	check(df.replay.full_frame, "phone: replay uses the full frame")
+	df.state = "replay"
+	df._lb_strip = 1.0
+	df._letterbox(0.1)
+	check(not df._lb_top.visible and not df._lb_caption.visible and df._lb_label.visible, "phone: no bars, no film caption, REPLAY tag shown")
+	df.state = "wave"
+	df.stop()
+	Game.force_phone = false
+	df.start(3)
+	df.set_process(false)
+	check(not df.replay.full_frame, "PC: replay keeps the 2.39:1 strip")
+	df.size = Vector2(720, 1100)
+	df.state = "replay"
+	for k in 30:
+		df._letterbox(0.1)
+	check(df._lb_top.visible and df._lb_top.size.y > 100.0, "PC: the strip bars close (%.0f px)" % df._lb_top.size.y)
+	df.state = "wave"
+	df.stop()
+	Engine.time_scale = 1.0
+
 	print("DOGFIGHT TESTS: %d passed, %d failed" % [passes, fails])
 	get_tree().quit(1 if fails > 0 else 0)
