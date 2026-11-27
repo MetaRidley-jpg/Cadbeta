@@ -100,7 +100,7 @@ T's concept sheet: `tools/art_src/tlc_jet_concept.png`.
 
 ## Challenges wall
 Achievements in the style of the Brawl Challenges screen: 4 x 32 windows, red hints left and right of a broken window, and 5 gold windows that pay Golden Bones.
-Data: `data/challenges.json` (windows, conditions, prizes). Full doc: Project doc `claude/challenges.md`.
+Data: `data/challenges.json` (windows, conditions, prizes). Full doc: Project doc `docs/challenges.md`.
 Debug run args: `-- --fresh --challenges --chdone=c_first_k,g_fold --chbones=2 --chsel=2,1`,
 `--chpend=id` (shatter on open), `--art=art_pinup`, `--tint=tint_moss`, `--ship=ship_ghost`, `--table=table_rot`.
 Placeholder art: `python3 tools/make_placeholder_art.py` writes `art/gallery/placeholder_0N.png`.

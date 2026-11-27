@@ -1,0 +1,85 @@
+# CLAUDE.md — Cadavire (Godot 4.7.2, PC + phone)
+
+Read this first. Then `docs/build-log.md` (what was built, slice by slice) and `docs/todo.md` (what is next).
+
+## Who you work with
+- **T** (also TLC, Tristian). Call him T. T gives creative direction; you build. T reviews, diagnoses and tests on his iPhone. T is strong in Photoshop / Illustrator / Figma, reads some code, is weak at writing code.
+- **Write in ASD-STE100 Simplified Technical English.** Short sentences, one instruction per sentence, active voice, approved words.
+- **No sycophancy.** Do not validate an approach because T suggested it. Act as a hostile auditor: find the biggest mechanical flaws, say where a system breaks under real pressure, offer a contrary model when it is useful. End each slice report with a short "Risks (hostile audit)" list.
+- T is a systems thinker, not a linear one: give the shape of a system and its knobs, not long step lists. He has ADHD: keep reports short, lead with the result.
+- T does not want "AI slop" art or UI. Pixel art, chunky bands, no smooth generic gradients.
+- Before any server / CLI work: check that a command is correct (docs, forums) before you give it. Commands are one line unless they must be split. Always say in one line what a command does.
+
+## Project rules (from T)
+1. **Things are functional and bug-tested before T sees them.** Run the test suites. Record and look at the result.
+2. **Screenshots every slice.** Record frames with the movie command below and LOOK at full frames (not only contact sheets: a misread contact sheet once produced a false bug report). Send T the screenshot / GIF.
+3. **DOCUMENT EVERYTHING.** Every slice: a build-log entry (`docs/build-log.md`), the feature doc in `docs/`, `docs/todo.md`, and the README slice section. Quote T's exact request at the top of each feature section.
+
+## The game (short)
+- AdCap-style idle tycoon: earn **Bones** from buildings (gag + industrial + "bone laundering" schemes). Secondary currency **Marrow** is wagered in minigames and buys **costumes** for Cadavire (stat boosts).
+- **Cadavire**: the host. Flirty but never says she has a crush, complicated, excited-shy, never sad. **Fever** meter fills slowly; full = personality shift, UI change, cheaper prices. Gifts raise Fever a lot. Dialogue boxes sit in the same place on every screen.
+- Minigames: Pool (PvP / PvE), Dogfight (the big one), Blackjack + Texas Hold'em (Marrow wagers, card room), Pinball (not built).
+- Details: `docs/minigames.md`, `docs/managers-and-loyalty.md`, `docs/challenges.md`, `docs/holdem.md`, `docs/card-room.md`.
+
+## Code map
+- `scripts/game.gd` — autoload `Game`: save, economy, `is_phone()`, wagers, settings.
+- `scripts/main.gd` — main UI, tabs, Play home (`_build_play`), debug command-line flags (`args.has(...)`), touch-scroll fix.
+- `scripts/sfx.gd` — autoload `Sfx`. Sounds in `audio/sfx/` (from `tools/make_sfx.py`; append new sounds at the END).
+- `scripts/cards/` — blackjack, hold'em, the 3D card room (`card_room_view.gd`, batched drawing).
+- `scripts/dogfight/` — `df_game.gd` (rules, waves, boss, rings, cyan laser, demos), `df_plane.gd`, `df_render.gd` (software Mode-7 + sprite stacks, 1/3 res), `df_replay.gd` (KO replay + director), `df_rings.gd`, `df_weather.gd`, `df_world.gd`, `df_fx.gd`, `df_koi.gd`, `df_controls.gd`, `df_super.gdshader`.
+- `data/*.json` — dialogue, buildings, costumes, managers, card_table lines. `art/stacks/*` — pixel-stack sprites. `art/fx/*` — explosion sheets.
+- `tools/` — art generators, carver (`carve_all.sh`, `ONLY=<name>`), vector import (`import_vector.py`), redraw kit (`tools/redraw/`), `record_demo.sh`, `setup_godot.sh`.
+
+## Set up a new machine
+`bash tools/setup_godot.sh` — installs Godot 4.7.2 + web templates + xvfb / rsvg / ffmpeg / Pillow, then imports. In a Claude Code cloud session it runs by itself (SessionStart hook in `.claude/settings.json`). If `godot` is not found after it ran, use `~/godot/godot` or `export PATH="$HOME/.local/bin:$PATH"`.
+
+## Tests (run before every push)
+All are headless. A pass prints `N passed, 0 failed` (ui_smoke: `ALL PASSED`). cards_test prints one harmless "Drawing is only allowed inside _draw" error: the test times `_draw_room()` directly.
+```
+godot --headless --path . res://tests/test_runner.tscn --quit-after 30000 -- --fresh     # rules, 366
+godot --headless --path . res://tests/dogfight_test.tscn --quit-after 20000 -- --fresh   # dogfight, 197
+godot --headless --path . res://tests/touch_test.tscn --quit-after 6000 -- --fresh       # phone touch, 25
+godot --headless --path . res://tests/ui_smoke.tscn --quit-after 8000 -- --fresh       # prints "UI SMOKE: ALL PASSED"
+godot --headless --path . res://tests/cards_test.tscn --quit-after 8000 -- --fresh       # 57
+godot --headless --path . res://tests/pool_test.tscn --quit-after 8000 -- --fresh        # 19
+godot --headless --path . res://tests/challenges_test.tscn --quit-after 8000 -- --fresh  # 116
+godot --headless --path . res://tests/holdem_test.tscn --quit-after 8000 -- --fresh      # 54
+```
+`tests/holdem_stress.tscn` is optional and slow. CI gate (`.github/workflows/web.yml`): rules + dogfight + touch.
+
+## Record screenshots / video
+```
+xvfb-run -a -s "-screen 0 1280x1400x24" godot --path . --rendering-method gl_compatibility --resolution 720x1280 --write-movie /tmp/probe/NAME/f.png --fixed-fps 30 --quit-after FRAMES -- --fresh ARGS
+```
+Frames come out 540x960. GIF: `bash tools/record_demo.sh NAME FRAMES ARGS` (prefix `xvfb-run -a`). A `.avi` output records sound too. Add `--phone` to get the phone layout on desktop.
+
+Useful ARGS:
+- Dogfight: `--dogfight --dfwave=N --dfgod --dfdemo=NAME`. Demos: `kami loop roll half immelmann fog beach rings[_slalom|_corkscrew|_loop|_stairs] ringsreplay[_kind] boss bossko asteroid koi volcano ko`. Also `--dfcrashat=7`, `--dfsim=3`, `--dfhold`, `--dforbit=165`. Demos keep the fixed weather order; real play rolls weather per wave.
+- UI: `--tab=N`, `--playopts`, `--fever`, `--marrow=N`, `--memlog` (MEM lines), `--phone`.
+- Cards: `--holdem --hebuy=5 --heauto --fast`, `--cards --bjauto`.
+- Full list: `grep -rhoE 'args\.has\("[a-z_]+"\)' scripts/`.
+
+## Web build (T plays here on his iPhone)
+- Push to `main` on `MetaRidley-jpg/Cadbeta` → GitHub Actions runs the gate, exports "Web", publishes to https://metaridley-jpg.github.io/Cadbeta/ (~1 min). Check with `gh run list --limit 3` / `gh run view <id> --log-failed`.
+- Web uses `gl_compatibility`, threads OFF. Details: `docs/web-build.md`.
+
+## Git
+- Branch `main`. Commit with `git -c user.name="Claude" -c user.email="noreply@anthropic.com" commit`. End every commit message with the attribution lines the session gives you.
+- Ignored: `build/`, `tools/demos/`, `tools/redraw/backup/`. `*.import` and `export_presets.cfg` ARE committed.
+
+## Known traps (each one cost time before)
+- **Test variable names must be unique** inside a test function (GDScript parse error kills the whole suite).
+- **A new `class_name`** needs `godot --headless --path . --import` once, or other scripts cannot see it.
+- **The renderer's FOV is vertical.** On a portrait phone a "78°" shot is ~60° across. Replay shots give a horizontal FOV and convert.
+- **Any folder the game reads by path at runtime** (json, stacks) must be in the Web preset's include filter, or the web build cannot find it.
+- **Touch:** controls inside a ScrollContainer are switched to `MOUSE_FILTER_PASS` on `node_added`. A control that needs its own drag must set its filter after `add_child`.
+- **Touch tests:** event positions go through `get_viewport().get_final_transform()`.
+- **CI grep:** use `"passed, 0 failed"`; `"0 failed"` matches `"10 failed"`.
+- **Demos vs real play:** check `demo == ""` before random systems (weather roll), and `start_demo` resets them.
+- **Stack sprites** have their origin at the bottom slice (hit centres, muzzles).
+- **Draw call count:** the card room crashed iPhone Safari at ~14k draw calls; batch with `RenderingServer.canvas_item_add_triangle_array`.
+
+## Open work (see docs/todo.md)
+- T phone-tests rings / cyan laser / course gap (slice 16p).
+- Dogfight frame cost on phones: CPU / script work, draw calls are only 100-420. Profile per stage first (`df_render` units drawing ~16 ms on desktop).
+- Enemy AI depth, dogfight-only rewards, more Cadavire in the dogfight, Pinball.
