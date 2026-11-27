@@ -38,6 +38,7 @@ var timer := -1.0                # s since the first ring; -1 = not started
 var cooldown := 0.0              # > 0: no course on the map yet
 var rings: Array = []            # {pos, normal, passed, pop}
 var completed := 0               # courses cleared this match
+var respawn := RESPAWN           # s before the next course; the game raises it in later waves
 var last_event := ""             # "", "ring", "done", "fail" (for the game + tests)
 var rng := RandomNumberGenerator.new()
 var _ground: Callable            # func(p: Vector3) -> float
@@ -193,7 +194,7 @@ func pass_ring() -> bool:
 		timer = 0.0
 	if next >= rings.size():
 		completed += 1
-		cooldown = RESPAWN
+		cooldown = respawn
 		timer = -1.0
 		last_event = "done"
 		return true

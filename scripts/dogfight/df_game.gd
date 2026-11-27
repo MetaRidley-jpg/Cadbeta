@@ -1379,6 +1379,11 @@ func laser_point(b: Dictionary, u: float) -> Vector3:
 ## Ring launch: aim at where the next ring will be when you get there, and throw the jet
 ## at it (DfPlane.launch: straight line, >= 210 m/s, the nose swings onto it). The last
 ## ring throws you straight ahead.
+## T (option 3): keep the exact launches, make courses rarer in later waves. Seconds until
+## the next course after one is cleared: 6 s in waves 1-3, then +7 s per wave, max 40 s.
+static func course_gap(w: int) -> float:
+	return DfRings.RESPAWN if w <= 3 else minf(40.0, DfRings.RESPAWN + (w - 3) * 7.0)
+
 func _ring_launch(done: bool) -> void:
 	if done or rings.next >= rings.rings.size():
 		player.launch(player.forward(), 0.3, 230.0)
@@ -1852,6 +1857,7 @@ func _next_wave() -> void:
 		_wave_def = wave_plan(wave)
 	_wave1_plan = {}
 	weather_log.append(_wave_def.preset)
+	rings.respawn = course_gap(wave)
 	if _wave_def.preset != weather.preset:
 		weather.set_preset(_wave_def.preset)
 	for k in int(_wave_def.fighters):

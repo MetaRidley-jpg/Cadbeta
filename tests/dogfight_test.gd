@@ -829,5 +829,19 @@ func _ready() -> void:
 	check(df.rings.next == 2, "the launch carries you through the next ring (%.1f s)" % (lst / 30.0))
 	df.stop()
 
+	# ---------------- slice 16p: courses rarer in later waves (T picked option 3)
+	check(df.course_gap(1) == 6.0 and df.course_gap(3) == 6.0, "waves 1-3: next course after 6 s")
+	check(df.course_gap(4) == 13.0 and df.course_gap(6) == 27.0 and df.course_gap(12) == 40.0, "later waves: 13 s, 27 s, max 40 s")
+	df.start(5)
+	df.set_process(false)
+	df.wave = 5
+	df._next_wave()
+	check(df.rings.respawn == 27.0, "wave 6 sets the course gap (%.0f s)" % df.rings.respawn)
+	df.rings.spawn(df.player.position, df.player.forward(), "slalom")
+	for i in DfRings.RINGS:
+		df.rings.pass_ring()
+	check(df.rings.cooldown == 27.0, "after a course in wave 6, the next one waits 27 s")
+	df.stop()
+
 	print("DOGFIGHT TESTS: %d passed, %d failed" % [passes, fails])
 	get_tree().quit(1 if fails > 0 else 0)

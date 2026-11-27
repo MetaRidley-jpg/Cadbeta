@@ -335,3 +335,6 @@ T: "The loops should be skinnier and larger and launch you to the next one and c
 - `DfPlane.launch(dir, time, min_speed)`: for 0.55 s the jet flies straight at the next ring's predicted position (lead solved in 3 passes) at ≥ 210 m/s while its nose (yaw + pitch) swings onto the line (slerp 14/s). The last ring throws you straight ahead (0.3 s, 230 m/s). Steering still applies on top.
 - Bug found by the new test: the crossing test used the ring's current pose for both ends of the step, so a ring that slid/tilted could pass a jet sitting 0.1 m short of its plane. Now the last position is tested against the ring's last pose (`ppos`, `pnormal`).
 - Measured: after ring 1, a launch alone carries you through rings 2-5 on all 4 courses (0.1-4 m from ring centres). Tests: dogfight 189.
+
+## Slice 16p: courses rarer in later waves (2026-11-26)
+T picked option 3 ("3 later I'm gonna test"): keep the exact ring launches; make courses rarer later. `DfGame.course_gap(wave)`: the next course appears 6 s after one is cleared in waves 1-3, then +7 s per wave (13, 20, 27, 34), max 40 s. Tests: dogfight 193.
