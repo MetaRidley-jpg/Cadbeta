@@ -22,7 +22,7 @@ Order = what I do next, top first. **P0** blocks shipping or is T's direct ask. 
 3g. ✅ **Courses rarer in later waves** (slice 16p). Waiting for T's phone test.
 3c. ✅ **Redraw kit** (slice 16l): master sprite sheet, SVG templates, vector import. Detail: `docs/sprite-redraw.md`. Waiting for T's first SVG.
 4. ✅ **First Claude Code session** (slice 16r): Godot downloads and all 8 suites pass in the cloud box. One test command: `bash tools/run_tests.sh`.
-4c. **Hold'em test count is not fixed (53-55).** Seed the RNG in `holdem_test.gd` so each run checks the same hands.
+4c. **Hold'em test count is not fixed (about 52-55).** Seed the RNG in `holdem_test.gd` so each run checks the same hands.
 4b. **More phone notes from T:** dogfight smoothness (boss wave, asteroid), touch controls in the dogfight and pool, text size, the replay strip. Add an on-screen fps counter to the web build for this.
 5. **Find and fix the 16 ms fixed draw cost.** Slice 16q measure: draw calls are only 100-420 per frame, so it is CPU / script work, not batching. Profile per stage first. First suspects: the rain/ash/motion-line loops in `_draw_weather`, the ground shadow discs, `draw_circle` halos. Measure each stage AND count draw calls (the card room crash was 14,000 draw calls; batching cut it ~100x). This matters more on the web build (one thread, WebAssembly).
 6. **Draw batching plan** (only if 5 is not enough): move the sprite pass from per-item `draw_*` calls to one batched mesh (MultiMesh or one ArrayMesh per frame), or move sort + draw to GDExtension (C# does not export to the web in Godot 4).

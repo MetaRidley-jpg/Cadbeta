@@ -345,6 +345,6 @@ T: "Optimize cadbeta for future work".
 - `setup_godot.sh`: apt now tries `install` before `update` (in the cloud box `apt-get update` failed, so librsvg / recording tools were silently missing).
 - SessionStart hook skips the ~1 GB web-template download (`SKIP_TEMPLATES=1`).
 - Removed a committed `tools/__pycache__/*.pyc`; `__pycache__/` and `*.pyc` ignored.
-- Found: the hold'em suite count moves (53-55) because random hands gate some checks. Docs said a fixed 54.
+- Found: the hold'em suite count moves (about 52-55) because random hands gate some checks. Docs said a fixed 54.
 - Tests: all 8 suites pass (rules 366, df 197, touch 25, ui, cards 57, pool 19, chal 116, holdem 55).
 
