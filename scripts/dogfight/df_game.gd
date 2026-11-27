@@ -529,6 +529,10 @@ func start_demo(name: String) -> void:
 	if name == "beach":
 		_start_demo_beach()
 		return
+	if name.begins_with("ringsreplay"):    # "ringsreplay[_<kind>]": a KO-style replay right after ring 4
+		_demo_ring_replay = true
+		_start_demo_rings(name.trim_prefix("ringsreplay").trim_prefix("_"))
+		return
 	if name.begins_with("rings"):          # "rings" or "rings_<kind>": a course, then a cyan chain
 		_start_demo_rings(name.trim_prefix("rings").trim_prefix("_"))
 		return
@@ -806,6 +810,8 @@ func _start_demo_beach() -> void:
 ## "rings" (slice 16n, T: rings that move + twinkle, a cleared course = cyan chain laser):
 ## fly one course ring by ring, get supercharged, then 5 jets show up ahead in a loose line
 ## and the cyan laser chains them, lightning on each.
+var _demo_ring_replay := false
+
 func _start_demo_rings(kind := "") -> void:
 	demo = "rings"
 	wave = 1
@@ -837,13 +843,18 @@ func _demo_rings(dt: float) -> void:
 				var st := player.steer_to(nx, 2.6)
 				player.turn = st.x
 				player.pitch_in = st.y
+			if _demo_ring_replay and rings.next == 4 and _replay_at < 0.0:
+				_demo_ring_replay = false        # show the course in a replay (rings 1-4 + launches)
+				_ko = {"kind": "wave", "t": sim_time, "pos": player.position, "victim": player.get_instance_id(), "boss": false}
+				_replay_at = sim_time + 0.3
+				_after_replay_msg = ["RING REPLAY", 1.2, ""]
 			if cyan_laser:
 				demo_log.append("course clear %.2f s" % _demo_t)
 				_demo_phase = "chain"
 				_demo_t = 0.0
 				var f := player.forward()
 				var sd := f.cross(Vector3.UP).normalized()
-				for k in 5:
+				for k in 4:                  # 4: the chain clears the wave, so the KO replay shows the rings
 					var e := DfPlane.new()
 					var ep := player.position + f * (520.0 + 170.0 * k) + sd * (60.0 if k % 2 else -60.0)
 					ep.y = maxf(player.position.y, world.ground_y(ep) + 90.0) + 10.0 * k      # above the terrain
@@ -863,8 +874,13 @@ func _demo_rings(dt: float) -> void:
 				demo_log.append("cyan fired, chain %d" % chain_preview.size())
 				fire_laser()
 				_demo_phase = "chain_done"
-		"chain_done":
+		"chain_done":                     # hold a safe altitude (the pilot used to fly into an island)
 			player.speed_cap = 80.0
+			var f2 := Vector3(player.forward().x, 0.0, player.forward().z).normalized()
+			var safe := maxf(world.ground_y(player.position + f2 * 300.0), world.ground_y(player.position)) + 140.0
+			var st3 := player.steer_to(player.position + f2 * 300.0 + Vector3.UP * (safe - player.position.y), 1.4)
+			player.turn = st3.x
+			player.pitch_in = st3.y
 
 func _demo_beach() -> void:
 	var isl: Dictionary = world.islands[0]
@@ -2298,7 +2314,7 @@ func _boss_down(e: DfPlane) -> void:
 # KO replay + letterbox
 # =====================================================================
 func _ko_ready() -> bool:
-	return Game.df_replays and (demo == "" or demo == "ko" or demo == "boss" or demo == "bossko")
+	return Game.df_replays and (demo == "" or demo == "ko" or demo == "boss" or demo == "bossko" or demo == "rings")
 
 func _begin_replay() -> void:
 	if not replay.can_play(float(_ko.t)):

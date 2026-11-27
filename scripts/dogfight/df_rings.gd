@@ -201,5 +201,34 @@ func pass_ring() -> bool:
 	last_event = "ring"
 	return false
 
+## Replays (T: "make loops appear in replays"): a small per-frame record of the course,
+## enough to rebuild every ring's pose at any course time.
+func snapshot() -> Dictionary:
+	var passed: Array = []
+	var pops: Array = []
+	for r in rings:
+		passed.append(r.passed)
+		pops.append(r.pop)
+	return {"kind": kind, "origin": origin, "axis": axis, "side": side, "t": t, "next": next,
+		"cooldown": cooldown, "passed": passed, "pop": pops}
+
+## Put the course back as recorded (at course time `at`, default the recorded one).
+func restore(snap: Dictionary, at := -1.0) -> void:
+	if snap.is_empty():
+		return
+	kind = snap.kind
+	origin = snap.origin
+	axis = snap.axis
+	side = snap.side
+	t = float(snap.t) if at < 0.0 else at
+	next = snap.next
+	cooldown = snap.cooldown
+	var passed: Array = snap.passed
+	var pops: Array = snap.pop
+	rings.clear()
+	for i in passed.size():
+		var ps := pose(i, t)
+		rings.append({"pos": ps[0], "normal": ps[1], "passed": passed[i], "pop": pops[i], "ppos": ps[0], "pnormal": ps[1]})
+
 func time_left() -> float:
 	return TIME_LIMIT - timer if timer >= 0.0 else TIME_LIMIT

@@ -843,5 +843,31 @@ func _ready() -> void:
 	check(df.rings.cooldown == 27.0, "after a course in wave 6, the next one waits 27 s")
 	df.stop()
 
+	# ---------------- slice 16q: ring courses play back in replays
+	df.autopilot = false
+	df.start(44)
+	df.set_process(false)
+	df.state = "wave"
+	df.rings.spawn(df.player.position, df.player.forward(), "corkscrew")
+	var rpos_at := {}
+	for k in 60:
+		df.sim_step(1.0 / 30.0)          # records a replay frame each step
+		if k == 30:
+			rpos_at = {"t": df.sim_time, "p": df.rings.rings[2].pos, "kind": df.rings.kind}
+	df.rings.spawn(df.player.position + Vector3(900, 0, 0), df.player.forward(), "loop")   # the live course changes
+	var live_kind: String = df.rings.kind
+	df.replay.begin(df, {"t": df.sim_time - 0.2, "victim": 0, "by": "", "boss": false})
+	df.replay.rt = float(rpos_at.t)
+	df.replay._apply(df)
+	check(df.rings.kind == rpos_at.kind, "replay shows the recorded ring course (%s)" % df.rings.kind)
+	check(df.rings.active() and df.rings.rings[2].pos.distance_to(rpos_at.p) < 1.0, "replayed rings sit where they were (%.2f m)" % df.rings.rings[2].pos.distance_to(rpos_at.p))
+	var rp_a: Vector3 = df.rings.rings[2].pos
+	df.replay.rt = float(rpos_at.t) + 0.5
+	df.replay._apply(df)
+	check(df.rings.rings[2].pos.distance_to(rp_a) > 2.0, "replayed rings move along their path")
+	df.replay.end(df)
+	check(df.rings.kind == live_kind, "after the replay the live course is back")
+	df.stop()
+
 	print("DOGFIGHT TESTS: %d passed, %d failed" % [passes, fails])
 	get_tree().quit(1 if fails > 0 else 0)

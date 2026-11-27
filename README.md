@@ -338,3 +338,9 @@ T: "The loops should be skinnier and larger and launch you to the next one and c
 
 ## Slice 16p: courses rarer in later waves (2026-11-26)
 T picked option 3 ("3 later I'm gonna test"): keep the exact ring launches; make courses rarer later. `DfGame.course_gap(wave)`: the next course appears 6 s after one is cleared in waves 1-3, then +7 s per wave (13, 20, 27, 34), max 40 s. Tests: dogfight 193.
+
+## Slice 16q: ring courses in replays (2026-11-27)
+T: "Wrap up and make loops appear in replays then we migrate on mobile to Claude code".
+- Replays record the ring course every frame (`DfRings.snapshot()`: kind, origin, axis, course clock, next, passed flags) and rebuild it on playback (`restore()`, course clock interpolated between frames), so rings show where they were, moving, the next one gold. The live course comes back after the replay. Before: replays drew the live course frozen at replay start (missing if it had been cleared, wrong place if it had moved).
+- Demo `--dfdemo=ringsreplay[_<kind>]`: a replay right after ring 4. The `rings` demo now allows KO replays, spawns 4 jets, and its pilot holds altitude after the chain (it flew into an island).
+- Tests: dogfight 197 (the recorded course plays back, at the recorded place, moving; the live course returns).

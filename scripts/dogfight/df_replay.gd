@@ -56,6 +56,7 @@ func record(g: Node) -> void:
 		"shock": g.shock.duplicate(true),
 		"lasers": g.lasers.duplicate(true),
 		"zaps": g.zaps.duplicate(true),
+		"rings": g.rings.snapshot(),
 		"burst": g.laser_burst_t,
 		"muzzle": g.muzzle_t,
 		"boss_id": g.boss.get_instance_id() if g.boss != null else 0,
@@ -82,7 +83,7 @@ func begin(g: Node, ko_info: Dictionary) -> void:
 	_fixed.clear()
 	_ghosts.clear()
 	_saved = {"player": g.player, "enemies": g.enemies, "projectiles": g.projectiles, "puffs": g.fx.puffs,
-		"blasts": g.fx.blasts, "ships": g.ships, "debris": g.debris, "shock": g.shock, "lasers": g.lasers, "zaps": g.zaps,
+		"blasts": g.fx.blasts, "ships": g.ships, "debris": g.debris, "shock": g.shock, "lasers": g.lasers, "zaps": g.zaps, "rings": g.rings.snapshot(),
 		"burst": g.laser_burst_t, "muzzle": g.muzzle_t, "target": g.laser_target,
 		"boss": g.boss, "boss_st": g.boss_st}
 	g.laser_target = null
@@ -113,6 +114,7 @@ func end(g: Node) -> void:
 	g.shock = _saved.shock
 	g.lasers = _saved.lasers
 	g.zaps = _saved.get("zaps", [])
+	g.rings.restore(_saved.get("rings", {}))
 	g.laser_burst_t = _saved.burst
 	g.muzzle_t = _saved.muzzle
 	g.laser_target = _saved.target
@@ -170,6 +172,11 @@ func _apply(g: Node) -> void:
 	g.shock = fa.shock
 	g.lasers = fa.lasers
 	g.zaps = fa.get("zaps", [])
+	var ra: Dictionary = fa.get("rings", {})        # the ring course plays back too, moving
+	var rb: Dictionary = fb.get("rings", {})
+	if not ra.is_empty():
+		var same: bool = not rb.is_empty() and rb.kind == ra.kind and (rb.origin as Vector3).is_equal_approx(ra.origin)
+		g.rings.restore(ra, lerpf(float(ra.t), float(rb.t), k) if same else -1.0)
 	g.laser_burst_t = fa.burst
 	g.muzzle_t = fa.muzzle
 	var bid: int = fa.get("boss_id", 0)       # the gunship + its beam play back too
