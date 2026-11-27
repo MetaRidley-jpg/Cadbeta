@@ -1382,14 +1382,14 @@ func _ground_disc(ci: CanvasItem, c: Vector3, r: float, col: Color) -> void:
 func _draw_weather(ci: CanvasItem, weather: DfWeather) -> void:
 	var dt := get_process_delta_time()
 	if weather.rain_on:
-		for i in _rain.size():
+		for i in int(_rain.size() * weather.rain_amt):
 			var r: Vector2 = _rain[i] + Vector2(-90.0, 380.0) * dt
 			if r.y > view_size.y:
 				r = Vector2(randf() * (view_size.x + 90.0), -6.0)
 			_rain[i] = r
 			ci.draw_line(r.round(), (r + Vector2(-2, 7)).round(), DfPal.RAIN, 1.0)
-	if weather.erupting:
-		for i in _ash.size():
+	if weather.ash_amt > 0.01:
+		for i in int(_ash.size() * weather.ash_amt):
 			var a: Vector2 = _ash[i] + Vector2(10.0, 30.0) * dt
 			if a.y > view_size.y:
 				a = Vector2(randf() * view_size.x, -2.0)

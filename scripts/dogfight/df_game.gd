@@ -102,6 +102,7 @@ const BOOST_FOV := [70.0, 82.0, 90.0, 104.0]
 @onready var boost_bar: ProgressBar = %BoostBar
 @onready var center_msg: Label = %CenterMsg
 @onready var sub_msg: Label = %SubMsg
+@onready var enemies_label: Label = %EnemiesLabel
 @onready var flash_rect: ColorRect = %Flash
 @onready var quit_button: Button = %QuitButton
 
@@ -285,7 +286,10 @@ func start(seed_value := -1) -> void:
 	_lb = 0.0
 	_quit_armed = 0.0
 	quit_button.text = "QUIT"
-	weather.set_preset("morning", true)
+	# T: "Make sure the wave 1 weather loads on boot": roll wave 1 now and show it during
+	# GET READY (it used to start in morning and switch when the wave began).
+	_wave1_plan = wave_plan(1)
+	weather.set_preset(_wave1_plan.preset, true)
 	_update_camera(0.0)
 	controls.release_all()
 	controls.enabled = true
@@ -462,6 +466,10 @@ func _player_step(dt: float) -> void:
 # its path, swing round while it turns back, then the super laser stops it.
 # =====================================================================
 func start_demo(name: String) -> void:
+	# demos keep the old fixed weather order: drop the random wave-1 roll, start in the
+	# scripted sky of the wave being played (the demo code may set its own after this)
+	_wave1_plan = {}
+	weather.set_preset(wave_def(maxi(wave, 1)).preset, true)
 	if name == "volcano":
 		_start_demo_volcano()
 		return
@@ -1329,16 +1337,16 @@ func _kill_enemy(e: DfPlane, how: String) -> void:
 			kills += 1
 			score += pts
 			player.boost = minf(100.0, player.boost + BOOST_KILL)
-			_takedown("TAKEDOWN!", 0.0)
+			_takedown("KO!", 0.0)
 		"terrain":
 			if e.last_hit_by_player < 4.0 or e.position.distance_to(player.position) < 160.0:
 				kills += 1
 				score += pts
 				player.boost = minf(100.0, player.boost + BOOST_TAKEDOWN)
-				_takedown("TERRAIN TAKEDOWN!", 150.0)
+				_takedown("TERRAIN KO!", 150.0)
 		"asteroid":
 			score += 50.0
-			_show_msg("ASTEROID TAKEDOWN!", 1.2)
+			_show_msg("ASTEROID KO!", 1.2)
 
 func _takedown(text: String, bonus: float) -> void:
 	takedowns += 1
@@ -1559,6 +1567,7 @@ const WEATHER_SAY := {"morning": "", "rain": "df_rain", "storm": "df_storm", "er
 var fixed_weather := false          # true = the old scripted order (demos, some tests)
 var weather_rng := RandomNumberGenerator.new()
 var weather_log: Array = []         # presets rolled this match (tests)
+var _wave1_plan: Dictionary = {}    # wave 1 is rolled at start() so its sky shows on boot
 
 func roll_weather() -> String:
 	var last: String = weather_log.back() if not weather_log.is_empty() else ""
@@ -1595,9 +1604,14 @@ func wave_def(w: int) -> Dictionary:
 
 func _next_wave() -> void:
 	wave += 1
-	_wave_def = wave_plan(wave)
+	if wave == 1 and not _wave1_plan.is_empty() and demo == "":
+		_wave_def = _wave1_plan
+	else:
+		_wave_def = wave_plan(wave)
+	_wave1_plan = {}
 	weather_log.append(_wave_def.preset)
-	weather.set_preset(_wave_def.preset, wave == 1)
+	if _wave_def.preset != weather.preset:
+		weather.set_preset(_wave_def.preset)
 	for k in int(_wave_def.fighters):
 		_spawn_enemy("fighter")
 	for k in int(_wave_def.kamikaze):
@@ -2144,7 +2158,7 @@ func _finish() -> void:
 	var reward := Game.end_minigame(waves_cleared >= 1, 0.5 + 0.5 * waves_cleared)
 	Challenges.bump("df_matches")
 	Game.say.emit("df_over", 3)
-	var txt := "Waves survived: %d\nTakedowns: %d · Score: %d%s\n%s" % [waves_cleared, takedowns, s, "  NEW BEST!" if best else "", reward]
+	var txt := "Waves survived: %d\nKOs: %d · Score: %d%s\n%s" % [waves_cleared, takedowns, s, "  NEW BEST!" if best else "", reward]
 	finished.emit(txt)
 
 func _on_quit() -> void:
@@ -2249,6 +2263,32 @@ const MSG_TIME := 0.65
 const MSG_FADE := 0.25
 const MSG_YELLOW := Color("ffe14a")
 
+## T: "have enemies remaining in the right side top". Jets + kamikazes + ships + the boss.
+## Shown during a wave; pops white and big for a moment when the count drops.
+var _left_last := -1
+var _left_pop := 0.0
+func enemies_left() -> int:
+	var n := _ships_alive()
+	for e in enemies:
+		if e.alive:
+			n += 1
+	return n
+
+func _update_enemies_left(real: float) -> void:
+	if enemies_label == null:
+		return
+	var n := enemies_left()
+	enemies_label.visible = state == "wave" and n > 0
+	if n < _left_last:
+		_left_pop = 0.35
+	_left_last = n
+	_left_pop = maxf(0.0, _left_pop - real)
+	enemies_label.text = "ENEMIES LEFT %d" % n
+	var k := _left_pop / 0.35
+	enemies_label.add_theme_color_override("font_color", MSG_YELLOW.lerp(Color.WHITE, k))
+	enemies_label.pivot_offset = enemies_label.size * Vector2(1.0, 0.5)
+	enemies_label.scale = Vector2.ONE * (1.0 + 0.25 * k)
+
 func _show_msg(text: String, time: float, sub := "") -> void:
 	center_msg.text = text
 	center_msg.modulate.a = 1.0
@@ -2259,6 +2299,7 @@ func _show_msg(text: String, time: float, sub := "") -> void:
 func _update_hud(delta: float) -> void:
 	var real := delta / maxf(Engine.time_scale, 0.01)
 	wave_label.text = "WAVE %d" % maxi(wave, 1)
+	_update_enemies_left(real)
 	score_label.text = "%d" % int(score)
 	hp_bar.value = player.hp
 	boost_bar.value = player.boost

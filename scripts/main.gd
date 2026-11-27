@@ -1144,6 +1144,7 @@ func _debug_setup() -> void:
 			df._timer = 0.0
 			df.wave = int(args.dfwave) - 1
 			df.sim_step(0.016)
+			df.weather.set_preset(df.weather.preset, true)   # a debug jump snaps the sky (no 12 s blend)
 		if args.has("dfsim"):    # simulate N seconds before the screenshot
 			var t := 0.0
 			while t < float(args.dfsim) and df.state != "over":

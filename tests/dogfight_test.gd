@@ -520,7 +520,7 @@ func _ready() -> void:
 	var kills0: int = df.kills
 	df.sim_step(1.0 / 30.0)
 	check(df.kills == kills0 + 1, "bullet hit kills a weak enemy")
-	check(df.takedowns >= 1, "kill counts as a takedown")
+	check(df.takedowns >= 1, "kill counts as a KO")
 	Engine.time_scale = 1.0
 
 	# kamikaze hits the player
@@ -687,6 +687,38 @@ func _ready() -> void:
 	df.state = "wave"
 	df.stop()
 	Engine.time_scale = 1.0
+
+	# ---------------- slice 16m: boot weather, smooth blends, KO text, enemies left
+	df.start(321)
+	df.set_process(false)
+	var boot_sky: String = df.weather.preset
+	check(df._wave1_plan.get("preset", "") == boot_sky and df.weather.blend_progress() >= 1.0, "wave 1 weather is on screen at boot (%s)" % boot_sky)
+	df._next_wave()
+	check(df.wave == 1 and df.weather.preset == boot_sky and df.weather_log[0] == boot_sky, "wave 1 keeps the boot sky (no switch when the wave starts)")
+	df.weather.set_preset("morning", true)
+	df.weather.set_preset("storm")
+	for k in 30:
+		df.weather.tick(0.1)          # 3 s in
+	check(df.weather.blend_progress() < 0.4, "weather blend is long (%.2f done after 3 s)" % df.weather.blend_progress())
+	check(df.weather.rain_amt > 0.0 and df.weather.rain_amt < 0.5, "rain fades in (%.2f after 3 s)" % df.weather.rain_amt)
+	check(not df.weather.thunder_on, "no thunder until the storm has built up")
+	for k in 120:
+		df.weather.tick(0.1)          # 15 s in
+	check(df.weather.blend_progress() >= 1.0 and df.weather.rain_amt >= 1.0 and df.weather.thunder_on, "storm fully in after 15 s")
+	df.weather.set_preset("morning")
+	df.weather.tick(1.0)
+	check(df.weather.rain_on and df.weather.rain_amt < 1.0, "rain fades out instead of stopping at once")
+	df._update_hud(0.016)
+	check(df.enemies_label.visible == (df.enemies_left() > 0), "enemies-left counter shows during a wave")
+	check(df.enemies_label.text == "ENEMIES LEFT %d" % df.enemies_left(), "counter text (%s)" % df.enemies_label.text)
+	var n0: int = df.enemies_left()
+	for en in df.enemies:
+		if en.alive:
+			en.alive = false
+			break
+	df._update_hud(0.016)
+	check(df.enemies_left() == n0 - 1 and df._left_pop > 0.0, "the counter drops and pops on a kill")
+	df.stop()
 
 	print("DOGFIGHT TESTS: %d passed, %d failed" % [passes, fails])
 	get_tree().quit(1 if fails > 0 else 0)

@@ -28,9 +28,21 @@ const PRESETS := {
 var world: DfWorld
 var preset := "morning"
 var cur := {}
+## T (2026-11-26): "make the transitions between weather smoother and longer".
+## Colors ease over BLEND_TIME (smoothstep, was a 4 s straight lerp). Rain, ash and thunder
+## no longer switch on/off: their amounts (0..1) ramp over FX_RAMP. The old flags are
+## derived from the amounts (rain shows from the first drop; lava + thunder only past half).
+const BLEND_TIME := 12.0
+const FX_RAMP := 9.0
 var rain_on := false
 var thunder_on := false
 var erupting := false
+var rain_amt := 0.0
+var ash_amt := 0.0
+var thunder_amt := 0.0
+var _rain_to := 0.0
+var _ash_to := 0.0
+var _thunder_to := 0.0
 var _from := {}
 var _to := {}
 var _blend := 1.0
@@ -56,15 +68,34 @@ func set_preset(name: String, instant := false) -> void:
 	_blend = 1.0 if instant else 0.0
 	if instant:
 		cur = _to.duplicate()
-	rain_on = name in ["rain", "storm", "night"]
-	thunder_on = name in ["storm", "night"]
-	erupting = name in ["eruption", "impact", "night"]
+	_rain_to = 1.0 if name in ["rain", "storm", "night"] else 0.0
+	_thunder_to = 1.0 if name in ["storm", "night"] else 0.0
+	_ash_to = 1.0 if name in ["eruption", "impact", "night"] else 0.0
+	if instant:
+		rain_amt = _rain_to
+		thunder_amt = _thunder_to
+		ash_amt = _ash_to
+	_update_flags()
+
+func _update_flags() -> void:
+	rain_on = rain_amt > 0.01
+	thunder_on = thunder_amt > 0.5
+	erupting = ash_amt > 0.5
+
+## 0..1 progress of the color blend (tests).
+func blend_progress() -> float:
+	return _blend
 
 func tick(dt: float) -> void:
 	if _blend < 1.0:
-		_blend = minf(1.0, _blend + dt / 4.0)
+		_blend = minf(1.0, _blend + dt / BLEND_TIME)
+		var e := _blend * _blend * (3.0 - 2.0 * _blend)
 		for k in _to:
-			cur[k] = (_from[k] as Color).lerp(_to[k], _blend)
+			cur[k] = (_from[k] as Color).lerp(_to[k], e)
+	rain_amt = move_toward(rain_amt, _rain_to, dt / FX_RAMP)
+	ash_amt = move_toward(ash_amt, _ash_to, dt / FX_RAMP)
+	thunder_amt = move_toward(thunder_amt, _thunder_to, dt / FX_RAMP)
+	_update_flags()
 	if thunder_on:
 		_lightning_t -= dt
 		if _lightning_t <= 0.0:

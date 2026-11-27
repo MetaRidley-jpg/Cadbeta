@@ -310,3 +310,11 @@ T: "Make a master sheet of sprites for me to redraw from front, I will provide v
 - `tools/make_master_sheet.py` → `tools/redraw/`: `master_sprite_sheet.png` (14 stacks with all 4 views + native px sizes + slice counts, 16 flat sprites, code-drawn list), `templates/<name>.svg` (Illustrator/Figma: REFERENCE, GUIDES, LABELS, BACKGROUND, YOUR_ART layers; 8 units = 1 game px), `manifest.json`, `REDRAW_GUIDE.md`.
 - `tools/import_vector.py <name> <svg>`: drops helper layers, renders with rsvg-convert, 8x8 block → 1 px (dominant color, ≥ 50% coverage), writes the 4-view sheet (empty BACK = mirrored FRONT) and carves that one asset (`ONLY=<name> bash tools/carve_all.sh`); flats overwrite the game PNG. Backups in `tools/redraw/backup/` (git-ignored).
 - Verified: round trip (the current art pasted as YOUR_ART) gives a 100% identical stack for jet_player and gunship and an identical flat for broth; a rough vector jet imports, pixelates crisply and carves.
+
+## Slice 16m: boot weather, smooth weather, KO!, enemies left (2026-11-26)
+T: "Make sure the wave 1 weather loads on boot dogfight and make the transitions between weather smoother and longer. Instead of take down have a KO! And have enemies remaining in the right side top".
+- Wave 1's random sky is rolled in `start()` and shown instantly during GET READY (it used to open in morning and switch at wave 1). Demos ignore the roll (fixed order); `--dfwave` jumps snap the sky.
+- `DfWeather`: colors blend over 12 s with smoothstep (was 4 s linear). Rain / ash / thunder fade by amount over 9 s (`rain_amt`, `ash_amt`, `thunder_amt`); thunder and lava start only once the weather is half built; the renderer draws a share of the drops / ash by amount.
+- Kill text "TAKEDOWN!" → "KO!" (also TERRAIN KO!, ASTEROID KO!, "KOs:" in the results, Cadavire's line).
+- HUD: "ENEMIES LEFT n" (jets + kamikazes + ships + boss) right-aligned under the bars, during a wave; it pops white and bigger when the count drops.
+- Tests: dogfight 155.
