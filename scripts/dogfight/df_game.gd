@@ -339,14 +339,19 @@ func _process(delta: float) -> void:
 			_end_replay()
 		_letterbox(delta)
 		return
+	var pt := DfProf.t0()
 	sim_step(minf(delta, 1.0 / 30.0))
+	DfProf.add("sim", pt)
 	if _replay_at >= 0.0 and sim_time >= _replay_at:
 		_replay_at = -1.0
 		_begin_replay()
 		_letterbox(delta)
 		return
+	pt = DfProf.t0()
 	_update_camera(minf(delta, 1.0 / 30.0))
 	_update_hud(delta)
+	DfProf.add("camera+hud", pt)
+	DfProf.tick()
 	_letterbox(delta)
 	if _slowmo_until > 0 and Time.get_ticks_msec() > _slowmo_until:
 		Engine.time_scale = 1.0
@@ -2590,6 +2595,18 @@ func _update_hud(delta: float) -> void:
 
 ## Markers for enemies (brackets on screen, arrows at the edge when off screen).
 func _draw_hud() -> void:
+	var pt := DfProf.t0()
+	_draw_hud_body()
+	DfProf.add("hud draw", pt)
+	if DfProf.on and world != null:
+		var font := get_theme_default_font()
+		var y := hud.size.y * 0.2
+		for line in DfProf.readout():
+			hud.draw_string_outline(font, Vector2(34, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 4, Color(0, 0, 0, 0.85))
+			hud.draw_string(font, Vector2(34, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("7dffb0"))
+			y += 15.0
+
+func _draw_hud_body() -> void:
 	if world == null or state == "idle" or state == "over":
 		return
 	var rect := Rect2(Vector2.ZERO, hud.size)

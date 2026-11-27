@@ -10,7 +10,7 @@ extends RefCounted
 const SIDE_SHADE := 0.70
 const UNDER_SHADE := 0.55
 
-var atlas: ImageTexture
+var atlas: Texture2D          # ImageTexture (live bake) or the imported baked PNG
 var frames: Array = []        # [elev_i * yaw_count + yaw_i] -> {rect: Rect2, anchor: Vector2}
 var yaw_count := 32
 var elevs: Array = []         # radians, ascending
@@ -84,17 +84,120 @@ static func extent(voxels: Dictionary) -> float:
 
 ## Bake from the carved strip when it exists. World size stays the same as the
 ## old code model (`fallback`), so collision radii and gameplay do not change.
-static func bake_art(name: String, fallback: Dictionary, yaw_count: int, elevs_deg: Array, m_per_px: float) -> DfSprites:
-	if not has_strip(name):
-		return bake(name, fallback, yaw_count, elevs_deg, m_per_px)
-	var vox := strip_voxels(name)
-	var mpp := m_per_px * extent(fallback) / maxf(1.0, extent(vox))
-	return bake("art_" + name, vox, yaw_count, elevs_deg, mpp, false)
+static var _art_cache := {}    # name -> DfSprites: skip the disk read + voxel decode on repeat calls
 
-## voxels: Vector3i(x, y, z) -> Color. y = slice (height), forward = -z.
-static func bake(key: String, voxels: Dictionary, yaw_count: int, elevs_deg: Array, m_per_px := 1.0, shade := true) -> DfSprites:
+## fallback: the code model (Dictionary), or a Callable that returns it (lazy: not built
+## when a baked file is used).
+static func bake_art(name: String, fallback: Variant, yaw_count: int, elevs_deg: Array, m_per_px: float) -> DfSprites:
+	if _art_cache.has(name):
+		return _art_cache[name]
+	var s: DfSprites
+	if not has_strip(name):
+		s = bake(name, fallback, yaw_count, elevs_deg, m_per_px)
+	else:
+		var fb := _lazy(fallback)
+		s = _cached("art_" + name, [yaw_count, elevs_deg, m_per_px, "art"],
+			func() -> String:
+				return FileAccess.get_md5(STACK_DIR + name + ".png") + FileAccess.get_md5(STACK_DIR + name + ".json") + str(extent(fb.call())),
+			func() -> DfSprites:
+				var vox := strip_voxels(name)
+				var mpp := m_per_px * extent(fb.call()) / maxf(1.0, extent(vox))
+				return _bake_now(vox, yaw_count, elevs_deg, mpp, false))
+	_art_cache[name] = s
+	return s
+
+# =====================================================================
+# Baked-atlas cache (slice 16r). Baking in GDScript costs ~6.5 s on desktop at match start
+# (boss alone 3.2 s); on a phone (WebAssembly) several times more. So the bakes are saved
+# once to art/baked/<key>.png + .json (tools/bake_sprites.sh; CI re-bakes before every web
+# export) and loaded in milliseconds.
+# - Exported build: trusts the baked files (no hashing, no model building).
+# - Dev run: checks a hash of the source (strip PNG + JSON, or the code model) and the bake
+#   settings. Stale or missing = bake live, as before, and print a WARN.
+# =====================================================================
+const BAKED_DIR := "res://art/baked/"
+static var write_baked := OS.get_cmdline_user_args().has("--bakesprites")
+static var trust_baked := OS.has_feature("template")    # exported game
+static var stats := {"loaded": 0, "baked": 0}            # for tests
+
+## Memo wrapper: Dictionary or Callable -> Callable that builds the value once.
+static func _lazy(v: Variant) -> Callable:
+	if v is Callable:
+		var memo := []
+		return func() -> Dictionary:
+			if memo.is_empty():
+				memo.append(v.call())
+			return memo[0]
+	return func() -> Dictionary: return v
+
+static func _cached(key: String, params: Array, src_hash: Callable, build: Callable) -> DfSprites:
 	if _cache.has(key):
 		return _cache[key]
+	var h := ""
+	if not trust_baked:
+		h = "%d_%s" % [var_to_str(params).hash(), src_hash.call()]
+	var s: DfSprites = null if write_baked else _load_baked(key, h)
+	if s != null:
+		stats.loaded += 1
+	else:
+		if FileAccess.file_exists(BAKED_DIR + key + ".json") and not write_baked:
+			push_warning("DfSprites: art/baked/%s is stale, baking live. Run: bash tools/bake_sprites.sh" % key)
+		s = build.call()
+		stats.baked += 1
+		if write_baked:
+			_save_baked(key, s, h)
+	_cache[key] = s
+	return s
+
+static func _load_baked(key: String, h: String) -> DfSprites:
+	var jp := BAKED_DIR + key + ".json"
+	if not FileAccess.file_exists(jp):
+		return null
+	var meta: Variant = JSON.parse_string(FileAccess.get_file_as_string(jp))
+	if not meta is Dictionary or (h != "" and String(meta.get("hash", "")) != h):
+		return null
+	var tex: Texture2D = null
+	var raw := ProjectSettings.globalize_path(BAKED_DIR + key + ".png")
+	if not trust_baked and FileAccess.file_exists(raw):
+		var img := Image.load_from_file(raw)     # dev: the fresh PNG, even before a re-import
+		if img != null:
+			tex = ImageTexture.create_from_image(img)
+	if tex == null and ResourceLoader.exists(BAKED_DIR + key + ".png"):
+		tex = load(BAKED_DIR + key + ".png")
+	if tex == null:
+		return null
+	var s := DfSprites.new()
+	s.atlas = tex
+	s.yaw_count = int(meta.yaw_count)
+	s.m_per_px = float(meta.m_per_px)
+	for e in meta.elevs:
+		s.elevs.append(float(e))
+	for f in meta.frames:
+		s.frames.append({"rect": Rect2(f[0], f[1], f[2], f[3]), "anchor": Vector2(f[4], f[5])})
+	return s
+
+static func _save_baked(key: String, s: DfSprites, h: String) -> void:
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(BAKED_DIR))
+	s.atlas.get_image().save_png(ProjectSettings.globalize_path(BAKED_DIR + key + ".png"))
+	var fr: Array = []
+	for f in s.frames:
+		var r: Rect2 = f.rect
+		var a: Vector2 = f.anchor
+		fr.append([r.position.x, r.position.y, r.size.x, r.size.y, a.x, a.y])
+	var meta := {"key": key, "hash": h, "yaw_count": s.yaw_count, "m_per_px": s.m_per_px, "elevs": s.elevs, "frames": fr}
+	var f := FileAccess.open(ProjectSettings.globalize_path(BAKED_DIR + key + ".json"), FileAccess.WRITE)
+	f.store_string(JSON.stringify(meta))
+	f.close()
+
+## voxels: Vector3i(x, y, z) -> Color. y = slice (height), forward = -z.
+## voxels: Dictionary, or a Callable that returns it (lazy: not built when a baked file is used).
+static func bake(key: String, voxels: Variant, yaw_count: int, elevs_deg: Array, m_per_px := 1.0, shade := true) -> DfSprites:
+	var vx := _lazy(voxels)
+	return _cached(key, [yaw_count, elevs_deg, m_per_px, shade],
+		func() -> String: return str(vx.call().hash()),
+		func() -> DfSprites: return _bake_now(vx.call(), yaw_count, elevs_deg, m_per_px, shade))
+
+static func _bake_now(voxels: Dictionary, yaw_count: int, elevs_deg: Array, m_per_px: float, shade: bool) -> DfSprites:
 	var s := DfSprites.new()
 	s.yaw_count = yaw_count
 	s.m_per_px = m_per_px
@@ -117,7 +220,6 @@ static func bake(key: String, voxels: Dictionary, yaw_count: int, elevs_deg: Arr
 		atlas_img.blit_rect(im, Rect2i(Vector2i.ZERO, im.get_size()), o)
 		s.frames.append({"rect": Rect2(o, im.get_size()), "anchor": imgs[i].anchor})
 	s.atlas = ImageTexture.create_from_image(atlas_img)
-	_cache[key] = s
 	return s
 
 ## One view. Viewer looks from +Z (behind a -Z-facing model), raised by `elev`.

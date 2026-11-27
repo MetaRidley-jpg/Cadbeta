@@ -26,7 +26,8 @@ Read this first. Then `docs/build-log.md` (what was built, slice by slice) and `
 - `scripts/main.gd` — main UI, tabs, Play home (`_build_play`), debug command-line flags (`args.has(...)`), touch-scroll fix.
 - `scripts/sfx.gd` — autoload `Sfx`. Sounds in `audio/sfx/` (from `tools/make_sfx.py`; append new sounds at the END).
 - `scripts/cards/` — blackjack, hold'em, the 3D card room (`card_room_view.gd`, batched drawing).
-- `scripts/dogfight/` — `df_game.gd` (rules, waves, boss, rings, cyan laser, demos), `df_plane.gd`, `df_render.gd` (software Mode-7 + sprite stacks, 1/3 res), `df_replay.gd` (KO replay + director), `df_rings.gd`, `df_weather.gd`, `df_world.gd`, `df_fx.gd`, `df_koi.gd`, `df_controls.gd`, `df_super.gdshader`.
+- `scripts/dogfight/` — `df_game.gd` (rules, waves, boss, rings, cyan laser, demos), `df_plane.gd`, `df_render.gd` (software Mode-7 + sprite stacks, 1/3 res), `df_replay.gd` (KO replay + director), `df_rings.gd`, `df_weather.gd`, `df_world.gd`, `df_fx.gd`, `df_koi.gd`, `df_controls.gd`, `df_super.gdshader`, `df_prof.gd` (profiler: `--dfprof` or `?prof` on web).
+- `art/baked/*` — pre-baked sprite atlases (PNG + JSON). Rebuild with `bash tools/bake_sprites.sh` after any change to `art/stacks/*` or a code sprite model. Detail: `docs/dogfight-performance.md`.
 - `data/*.json` — dialogue, buildings, costumes, managers, card_table lines. `art/stacks/*` — pixel-stack sprites. `art/fx/*` — explosion sheets.
 - `tools/` — art generators, carver (`carve_all.sh`, `ONLY=<name>`), vector import (`import_vector.py`), redraw kit (`tools/redraw/`), `record_demo.sh`, `setup_godot.sh`.
 
@@ -37,7 +38,7 @@ Read this first. Then `docs/build-log.md` (what was built, slice by slice) and `
 **One command: `bash tools/run_tests.sh`** — runs all 8 suites in parallel (~20 s), prints a PASS/FAIL table, exits 1 on any failure. Logs: `build/test-logs/<name>.log`. Pick suites: `bash tools/run_tests.sh rules df`. CI gate only: `CI=1 bash tools/run_tests.sh`. Timings: `SERIAL=1`. A broken suite is killed after 120 s.
 
 Suites (name: scene, about how many checks). A pass prints `N passed, 0 failed` (ui: `ALL PASSED`).
-`rules` test_runner 366 · `df` dogfight_test 197 · `touch` touch_test 25 · `ui` ui_smoke · `cards` cards_test 57 · `pool` pool_test 19 · `chal` challenges_test 116 · `holdem` holdem_test about 52-55 (random hands gate some checks, so the count moves).
+`rules` test_runner 366 · `df` dogfight_test 201 · `touch` touch_test 25 · `ui` ui_smoke · `cards` cards_test 57 · `pool` pool_test 19 · `chal` challenges_test 116 · `holdem` holdem_test about 52-55 (random hands gate some checks, so the count moves).
 - To add a suite: add one line to `SUITES` in `tools/run_tests.sh`.
 - cards_test prints one harmless "Drawing is only allowed inside _draw" error: the test times `_draw_room()` directly.
 - One suite by hand: `godot --headless --path . res://tests/<scene>.tscn --quit-after 30000 -- --fresh`.
@@ -73,9 +74,11 @@ Useful ARGS:
 - **CI grep:** use `"passed, 0 failed"`; `"0 failed"` matches `"10 failed"`.
 - **Demos vs real play:** check `demo == ""` before random systems (weather roll), and `start_demo` resets them.
 - **Stack sprites** have their origin at the bottom slice (hit centres, muzzles).
+- **Stale baked sprites:** change art or a sprite model → run `bash tools/bake_sprites.sh`, or dogfight_test fails ("all sprite atlases load from fresh art/baked files"). Dev runs still work (they bake live, with a WARN).
+- **Per-frame work:** never load, decode or build models in a per-frame path. Profile with `--dfprof` before you guess (the old "16 ms draw cost" was a PNG re-read, not drawing).
 - **Draw call count:** the card room crashed iPhone Safari at ~14k draw calls; batch with `RenderingServer.canvas_item_add_triangle_array`.
 
 ## Open work (see docs/todo.md)
 - T phone-tests rings / cyan laser / course gap (slice 16p).
-- Dogfight frame cost on phones: CPU / script work, draw calls are only 100-420. Profile per stage first (`df_render` units drawing ~16 ms on desktop).
+- Dogfight frame cost: fixed in slice 16r (sprites() cache + baked atlases). T phone-tests with `?prof`. Koi draw is the top cost now.
 - Enemy AI depth, dogfight-only rewards, more Cadavire in the dogfight, Pinball.

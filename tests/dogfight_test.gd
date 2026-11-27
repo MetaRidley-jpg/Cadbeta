@@ -869,5 +869,48 @@ func _ready() -> void:
 	check(df.rings.kind == live_kind, "after the replay the live course is back")
 	df.stop()
 
+	# ---------------- slice 16r: frame cost + baked atlases
+	# sprites() is a cache hit (it re-read the PNG strip every frame = ~25 ms at wave 8)
+	var bk_p := DfPlane.new()
+	bk_p.kind = "fighter"
+	var bk_first := bk_p.sprites()
+	var bk_t0 := Time.get_ticks_usec()
+	for k in 200:
+		bk_p.sprites()
+	var bk_us := (Time.get_ticks_usec() - bk_t0) / 200.0
+	check(bk_p.sprites() == bk_first and bk_us < 50.0, "jet sprites() is a cache lookup (%.1f us per call)" % bk_us)
+	# every atlas the match uses came from a FRESH baked file (stale = run tools/bake_sprites.sh)
+	DfRender.bake_all()
+	for k in ["player", "fighter", "kamikaze", "boss"]:
+		DfPlane.sprites_for(k)
+	DfWeather.rock_sprites()
+	check(DfSprites.stats.baked == 0 and DfSprites.stats.loaded >= 10, "all sprite atlases load from fresh art/baked files (live bakes this run %d, loaded %d)" % [DfSprites.stats.baked, DfSprites.stats.loaded])
+	# a baked file is pixel-identical to a live bake (code model + carved strip)
+	for bk_key in ["art_hoop", "art_kamikaze"]:
+		var bk_loaded: DfSprites = DfSprites._cache[bk_key]
+		var bk_name: String = bk_key.substr(4)
+		var bk_vox := DfSprites.strip_voxels(bk_name)
+		var bk_fb: Dictionary = DfRender._hoop_model() if bk_name == "hoop" else DfPlane.model("kamikaze")
+		var bk_live := DfSprites._bake_now(bk_vox, bk_loaded.yaw_count, [-30, 0, 20, 45, 75] if bk_name == "hoop" else [-80, -55, -25, 0, 18, 38, 65, 80],
+			(2.0 if bk_name == "hoop" else DfPlane.JET_M_PER_PX) * DfSprites.extent(bk_fb) / maxf(1.0, DfSprites.extent(bk_vox)), false)
+		var bk_a := bk_loaded.atlas.get_image()
+		var bk_b := bk_live.atlas.get_image()
+		bk_a.convert(Image.FORMAT_RGBA8)
+		var bk_same := bk_a.get_size() == bk_b.get_size() and bk_loaded.frames.size() == bk_live.frames.size()
+		if bk_same:
+			for y in bk_a.get_height():
+				for x in bk_a.get_width():
+					var ca := bk_a.get_pixel(x, y)
+					var cb := bk_b.get_pixel(x, y)
+					if ca.a8 != cb.a8 or (cb.a8 > 0 and ca.to_rgba32() != cb.to_rgba32()):
+						bk_same = false
+						break
+				if not bk_same:
+					break
+			for i in bk_live.frames.size():
+				if bk_loaded.frames[i].rect != bk_live.frames[i].rect or bk_loaded.frames[i].anchor.distance_to(bk_live.frames[i].anchor) > 0.001:
+					bk_same = false
+		check(bk_same and absf(bk_loaded.m_per_px - bk_live.m_per_px) < 1e-6, "baked %s = live bake (pixels, frames, scale)" % bk_key)
+
 	print("DOGFIGHT TESTS: %d passed, %d failed" % [passes, fails])
 	get_tree().quit(1 if fails > 0 else 0)

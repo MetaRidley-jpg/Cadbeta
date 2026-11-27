@@ -85,12 +85,13 @@ func _ready() -> void:
 static func bake_all() -> void:
 	if spr.has("palm"):
 		return
-	spr["palm"] = DfSprites.bake_art("palm", _palm_model(), 16, [4, 20, 45, 75], 2.6)   # beach v2: tall leaning palms (~22 m)
-	spr["spire"] = DfSprites.bake_art("spire", _spire_model(), 8, [4, 20, 45, 75], 5.0)
-	spr["volcano"] = DfSprites.bake_art("volcano", _volcano_model(), 1, [2, 12, 25, 45, 75], 6.0)
-	spr["ship"] = DfSprites.bake_art("ship", _ship_model(), 16, [8, 25, 50, 80], 2.0)
-	spr["hoop"] = DfSprites.bake_art("hoop", _hoop_model(), 16, [-30, 0, 20, 45, 75], 2.0)
-	spr["ring"] = DfSprites.bake("ring_thin", _ring_model(), 16, [-60, -30, 0, 20, 45, 75], 2.0)
+	var pk := Time.get_ticks_usec()
+	spr["palm"] = DfSprites.bake_art("palm", _palm_model, 16, [4, 20, 45, 75], 2.6)   # beach v2: tall leaning palms (~22 m)
+	spr["spire"] = DfSprites.bake_art("spire", _spire_model, 8, [4, 20, 45, 75], 5.0)
+	spr["volcano"] = DfSprites.bake_art("volcano", _volcano_model, 1, [2, 12, 25, 45, 75], 6.0)
+	spr["ship"] = DfSprites.bake_art("ship", _ship_model, 16, [8, 25, 50, 80], 2.0)
+	spr["hoop"] = DfSprites.bake_art("hoop", _hoop_model, 16, [-30, 0, 20, 45, 75], 2.0)
+	spr["ring"] = DfSprites.bake("ring_thin", _ring_model, 16, [-60, -30, 0, 20, 45, 75], 2.0)
 	for k in 3:
 		cloud_tex.append(ImageTexture.create_from_image(_cloud_image(k)))
 	for kind in BLAST_PATHS:
@@ -101,6 +102,8 @@ static func bake_all() -> void:
 		elif ResourceLoader.exists(path):
 			blast_texs[kind] = load(path)
 	blast_tex = blast_texs.get("fire")
+	if DfProf.on:
+		print("PROF bake_scenery_ms=%.1f" % ((Time.get_ticks_usec() - pk) / 1000.0))
 
 func setup(g: Node) -> void:
 	trails.clear()
@@ -109,7 +112,16 @@ func setup(g: Node) -> void:
 	g.weather.lightning.connect(_on_koi_lightning)
 	g.weather.asteroid_impact.connect(_on_koi_impact)
 	game = g
+	var pt := Time.get_ticks_usec()
 	bake_all()
+	for k in ["player", "fighter", "kamikaze", "boss"]:
+		var pk := Time.get_ticks_usec()
+		DfPlane.sprites_for(k)    # bake now, not on the jet's first frame on screen
+		if DfProf.on:
+			print("PROF bake_%s_ms=%.1f" % [k, (Time.get_ticks_usec() - pk) / 1000.0])
+	DfWeather.rock_sprites()
+	if DfProf.on:
+		print("PROF bake_at_setup_ms=%.1f" % ((Time.get_ticks_usec() - pt) / 1000.0))
 	var m: ShaderMaterial = _bg.material
 	m.set_shader_parameter("world_map", g.world.map_tex)
 	m.set_shader_parameter("map_origin", g.world.map_origin)
@@ -180,9 +192,13 @@ func _process(_d: float) -> void:
 	if game == null or game.world == null:
 		return
 	_t += _d
+	var pt := DfProf.t0()
 	_step_sparks(_d)
 	_step_trails(_d)
+	DfProf.add("trails", pt)
+	pt = DfProf.t0()
 	_step_koi(_d)
+	DfProf.add("koi move", pt)
 	view_size = get_viewport_rect().size
 	anchor = view_size * 0.5
 	_bg.size = view_size
@@ -309,6 +325,11 @@ func _on_koi_impact(point: Vector3) -> void:
 ## The koi swim above everything (390-540 m), so they draw on their own two layers behind
 ## the jets and clouds: far to near, core first (normal blend), then light (additive).
 func _draw_koi_layer(glow: bool) -> void:
+	var pt := DfProf.t0()
+	_draw_koi_layer_body(glow)
+	DfProf.add("koi draw", pt)
+
+func _draw_koi_layer_body(glow: bool) -> void:
 	if game == null or game.world == null:
 		return
 	var ci: CanvasItem = _koi_glow if glow else _koi_body
@@ -952,6 +973,7 @@ func _draw_units() -> void:
 	var world: DfWorld = game.world
 	var weather: DfWeather = game.weather
 	var list: Array = []
+	var pt := DfProf.t0()
 	# ground shadows (drawn first, they lie on the floor)
 	var jets: Array = []
 	for e in game.enemies:
@@ -968,6 +990,8 @@ func _draw_units() -> void:
 		var ap := weather.asteroid_position()
 		var grow := clampf(weather.asteroid_t / weather.asteroid_time, 0.0, 1.0)
 		_ground_disc(ci, Vector3(ap.x, 0.3, ap.z), lerpf(40.0, 220.0, grow), Color(DfPal.SHADOW, 0.25 + 0.35 * grow))
+	DfProf.add("shadows", pt)
+	pt = DfProf.t0()
 	# scenery
 	var vp: Dictionary = world.volcano
 	_replay_focus()
@@ -1001,6 +1025,8 @@ func _draw_units() -> void:
 			var rp := project(r.pos)
 			if rp.z > 0.5 and rp.z < light_end:
 				list.append([rp.z - 0.5, "twinkle", r, rp, i == rg.next])
+	DfProf.add("scenery", pt)
+	pt = DfProf.t0()
 	var glow_e: Variant = null
 	var glow_set: Array = []
 	if game.laser_ready() and game.laser_target != null and game.laser_target.has("e"):
@@ -1086,7 +1112,12 @@ func _draw_units() -> void:
 		var a := project(f.pos)
 		if a.z > 0.0 and a.z < fog_end:
 			list.append([a.z, "puff", f, a])
+	DfProf.add("jets+fx", pt)
+	DfProf.val("n_items", list.size())
+	pt = DfProf.t0()
 	list.sort_custom(func(x, y): return x[0] > y[0])
+	DfProf.add("sort", pt)
+	pt = DfProf.t0()
 	for it in list:
 		match it[1]:
 			"sprite":
@@ -1182,8 +1213,11 @@ func _draw_units() -> void:
 				var col: Color = f.col
 				col.a *= (1.0 - kk * kk) * _fade(a.z) * smoothstep(6.0, 22.0, a.z)
 				ci.draw_rect(Rect2((Vector2(a.x, a.y) - Vector2(sz, sz) * 0.5).round(), Vector2(sz, sz)), col)
+	DfProf.add("draw", pt)
+	pt = DfProf.t0()
 	_draw_weather(ci, weather)
 	_draw_asteroid_tint(ci)
+	DfProf.add("weather", pt)
 	if game.state == "replay":
 		_draw_replay_marks(ci)
 

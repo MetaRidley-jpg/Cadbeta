@@ -351,3 +351,8 @@ T: "Optimize cadbeta for future work".
 - `bash tools/run_tests.sh`: all 8 suites in parallel (~18 s), PASS/FAIL table, exit 1 on failure, logs in `build/test-logs/`. CI calls the same script (`CI=1`).
 - Setup: apt fallback fixed (recording tools were silently missing in the cloud box); the session hook skips the ~1 GB web-template download.
 - Removed a committed `.pyc`. Tests: all 8 suites pass.
+
+### 16r part 2: dogfight runs better
+T: "Just continue, make dogfight run better as well".
+- Jets + fx 26 ms → 2 ms per frame at wave 8 (a PNG was re-read every frame for every jet). Match-start bake 6.5 s → 45 ms (`art/baked/`, `bash tools/bake_sprites.sh`). No more freeze when a new jet kind appears.
+- Phone profiler: open the game with `?prof` at the end of the address. Detail: `docs/dogfight-performance.md`.

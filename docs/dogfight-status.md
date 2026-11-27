@@ -41,7 +41,7 @@ T, in order:
 | Played by a human | T on the iPhone since 2026-11-26 |
 
 **Biggest risks (still open):**
-1. Frame cost on the phone (~16 ms of units drawing on desktop; draw calls are only 100-420, so it is CPU / script work).
+1. Frame cost: fixed in slice 16r (see `docs/dogfight-performance.md`). Koi draw is the top cost now.
 2. Enemy AI is the weakest part: fighters chase, kamikazes beeline, nobody evades, nobody flies in formation, nobody loops.
 3. Shallow goal: "survive the waves" for bones only; needs dogfight-only rewards.
 4. Cadavire is barely in it (a cockpit cut-in on the laser / drift boost / KO).

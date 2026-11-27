@@ -108,7 +108,7 @@ Concept sheet: `tools/art_src/tlc_jet_concept.png`. Placeholder views: `tlc_jet(
 - The jet's ground shadow can show as a large disc when you dive near the ground.
 - Bottom-edge arrows can sit between the touch buttons.
 - Baked jet frames go up to 80 deg elevation. Straight above or below, the nearest frame is used.
-- Dogfight frame cost: ~16 ms of units drawing on desktop (draw calls are only 100-420, so it is CPU / script work, not batching). Not yet profiled per stage. See `docs/todo.md`.
+- Dogfight frame cost: fixed in slice 16r (a per-frame PNG re-read, plus baked atlases). See `docs/dogfight-performance.md`.
 
 ## Card table (built)
 - **Blackjack:** Cadavire deals. 4-deck shoe, S17, 3:2, double, split (slice 12), no insurance. Funny business by seated managers.

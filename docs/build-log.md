@@ -348,3 +348,12 @@ T: "Optimize cadbeta for future work".
 - Found: the hold'em suite count moves (about 52-55) because random hands gate some checks. Docs said a fixed 54.
 - Tests: all 8 suites pass (rules 366, df 197, touch 25, ui, cards 57, pool 19, chal 116, holdem 55).
 
+### 16r part 2: dogfight runs better
+T: "Just continue, make dogfight run better as well". Detail: `docs/dogfight-performance.md`.
+- Profiled per stage first (`DfProf`, `--dfprof`). The cost was NOT drawing: `DfPlane.sprites()` re-read the PNG strip and rebuilt the voxel model every frame for every jet (~25 ms at wave 8). Cached: jets + fx 26 ms → 2 ms.
+- Baked atlases: `tools/bake_sprites.sh` → `art/baked/`. Match-start bake 6.5 s → 45 ms; the 0.5-1 s freeze when a jet kind first appeared is gone (all kinds pre-loaded). CI re-bakes before export. Web export include filter: `art/baked/*.json`.
+- On-screen profiler readout: `?prof` in the web address.
+- Tried koi batching: slower on desktop and web. Reverted.
+- Checked in the exported web build (headless Chromium): baked files load, sprites draw right, script work ~6-9 ms per frame at wave 8.
+- Tests: dogfight 201 (+4: sprites() is a cache lookup; all atlases fresh; 2 baked = live bake pixel checks). A stale file makes the test fail (checked).
+

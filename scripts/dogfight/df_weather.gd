@@ -134,18 +134,21 @@ func start_asteroid(target: Vector3, warn_time := 10.0, viewer := Vector3.ZERO) 
 ## The burning rock sprite (asteroid + debris + boss wreckage). Baked once, on first use.
 static func rock_sprites() -> DfSprites:
 	if asteroid_sprites == null:
-		var v := {}
-		var rng := RandomNumberGenerator.new()
-		rng.seed = 42
-		for x in range(-10, 11):
-			for y in range(-10, 11):
-				for z in range(-10, 11):
-					var p := Vector3(x, y, z)
-					var r := p.length()
-					if r <= 9.3 + rng.randf() * 0.9 and r > 7.5:   # shell only
-						v[Vector3i(x, y + 10, z)] = DfPal.FIRE if (rng.randf() < 0.22 or y > 5) else DfPal.ROCK
-		asteroid_sprites = DfSprites.bake_art("asteroid", v, 8, [-20, 10, 40], 4.0)
+		asteroid_sprites = DfSprites.bake_art("asteroid", _rock_model, 8, [-20, 10, 40], 4.0)
 	return asteroid_sprites
+
+static func _rock_model() -> Dictionary:
+	var v := {}
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 42
+	for x in range(-10, 11):
+		for y in range(-10, 11):
+			for z in range(-10, 11):
+				var p := Vector3(x, y, z)
+				var r := p.length()
+				if r <= 9.3 + rng.randf() * 0.9 and r > 7.5:   # shell only
+					v[Vector3i(x, y + 10, z)] = DfPal.FIRE if (rng.randf() < 0.22 or y > 5) else DfPal.ROCK
+	return v
 
 func asteroid_position() -> Vector3:
 	return asteroid_pos

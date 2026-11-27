@@ -116,14 +116,33 @@ func hit_center() -> Vector3:
 const BOSS_SPAN := 70.0         # m: the gunship's width
 const BOSS_PX := BOSS_SPAN / 46.0   # m per art pixel
 
+## Called every frame for every jet: keep it a dictionary lookup. (Slice 16r: it used to
+## rebuild the voxel model and re-read the PNG strip from disk on every call = ~25 ms per
+## frame at wave 8, the whole "16 ms fixed draw cost".)
+static var _spr_cache := {}     # art name -> DfSprites
+
 func sprites() -> DfSprites:
+	return sprites_for(kind)
+
+## Also used to pre-bake every kind at match start (DfRender.setup): a first bake mid-fight
+## froze the game for 0.4-1 s.
+static func sprites_for(kind: String) -> DfSprites:
+	var art := "gunship"
+	if kind != "boss":
+		art = "kamikaze" if kind == "kamikaze" else "jet_" + kind
+		if kind == "player":
+			art = Challenges.ship_strip()   # alt jets from the Challenges wall (cosmetic only)
+	var hit: DfSprites = _spr_cache.get(art)
+	if hit != null:
+		return hit
+	var s: DfSprites
 	if kind == "boss":    # 70 m across (art/stacks/gunship.png is 46 px: ~1.52 m per px)
-		var fb := model("player")    # bake_art scales art to the fallback's size: undo that
-		return DfSprites.bake_art("gunship", fb, 32, [-80, -55, -25, 0, 18, 38, 65, 80], BOSS_SPAN / DfSprites.extent(fb))
-	var art := "kamikaze" if kind == "kamikaze" else "jet_" + kind
-	if kind == "player":
-		art = Challenges.ship_strip()   # alt jets from the Challenges wall (cosmetic only)
-	return DfSprites.bake_art(art, model(kind), 32, [-80, -55, -25, 0, 18, 38, 65, 80], JET_M_PER_PX)
+		# bake_art scales art to the fallback's size: undo that (BOSS_SPAN / extent of the player model)
+		s = DfSprites.bake_art("gunship", func(): return model("player"), 32, [-80, -55, -25, 0, 18, 38, 65, 80], BOSS_SPAN / DfSprites.extent(model("player")))
+	else:
+		s = DfSprites.bake_art(art, func(): return model(kind), 32, [-80, -55, -25, 0, 18, 38, 65, 80], JET_M_PER_PX)
+	_spr_cache[art] = s
+	return s
 
 func set_meta2(k: String, v) -> void:
 	_meta[k] = v

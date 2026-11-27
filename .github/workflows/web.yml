@@ -58,6 +58,9 @@ jobs:
       - name: Import
         run: ~/godot/godot --headless --path . --import || true
 
+      - name: Bake sprite atlases (art/baked; the game loads them instead of baking ~6 s at match start)
+        run: bash tools/bake_sprites.sh
+
       - name: Tests (a failure blocks the publish)
         run: CI=1 bash tools/run_tests.sh || { tail -40 build/test-logs/*.log; exit 1; }
 

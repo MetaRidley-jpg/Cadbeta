@@ -1,4 +1,4 @@
-# Cadavire to-do list (updated 2026-11-27, after slice 16r — dev tooling)
+# Cadavire to-do list (updated 2026-11-27, after slice 16r — dev tooling + dogfight performance)
 
 Order = what I do next, top first. **P0** blocks shipping or is T's direct ask. **P1** structure (parent classes, scene split). **P2** content. **P3** store and release. Done items stay here with ✅ so the history is clear.
 
@@ -24,8 +24,10 @@ Order = what I do next, top first. **P0** blocks shipping or is T's direct ask. 
 4. ✅ **First Claude Code session** (slice 16r): Godot downloads and all 8 suites pass in the cloud box. One test command: `bash tools/run_tests.sh`.
 4c. **Hold'em test count is not fixed (about 52-55).** Seed the RNG in `holdem_test.gd` so each run checks the same hands.
 4b. **More phone notes from T:** dogfight smoothness (boss wave, asteroid), touch controls in the dogfight and pool, text size, the replay strip. Add an on-screen fps counter to the web build for this.
-5. **Find and fix the 16 ms fixed draw cost.** Slice 16q measure: draw calls are only 100-420 per frame, so it is CPU / script work, not batching. Profile per stage first. First suspects: the rain/ash/motion-line loops in `_draw_weather`, the ground shadow discs, `draw_circle` halos. Measure each stage AND count draw calls (the card room crash was 14,000 draw calls; batching cut it ~100x). This matters more on the web build (one thread, WebAssembly).
-6. **Draw batching plan** (only if 5 is not enough): move the sprite pass from per-item `draw_*` calls to one batched mesh (MultiMesh or one ArrayMesh per frame), or move sort + draw to GDExtension (C# does not export to the web in Godot 4).
+5. ✅ **The 16 ms "draw cost"** (slice 16r): it was `sprites()` re-reading PNGs every frame, not drawing. Fixed + baked atlases. Detail: `docs/dogfight-performance.md`.
+5b. **T: phone-test with `?prof`** (https://metaridley-jpg.github.io/Cadbeta/?prof). Send a screenshot of the readout in a busy wave and the boss.
+5c. **Koi draw** is now the top cost (peaks 13 ms on web). Needs T's call: lower detail at mid range, or a shader koi.
+6. ~~**Draw batching plan**~~ (not needed: draw calls were never the cost; koi batching measured slower) (only if 5 is not enough): move the sprite pass from per-item `draw_*` calls to one batched mesh (MultiMesh or one ArrayMesh per frame), or move sort + draw to GDExtension (C# does not export to the web in Godot 4).
 
 ## P1: structure (parent classes, scene split)
 7. **Split `df_game.gd` into a parent + children:**
