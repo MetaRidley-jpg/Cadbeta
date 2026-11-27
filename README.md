@@ -318,3 +318,12 @@ T: "Make sure the wave 1 weather loads on boot dogfight and make the transitions
 - Kill text "TAKEDOWN!" → "KO!" (also TERRAIN KO!, ASTEROID KO!, "KOs:" in the results, Cadavire's line).
 - HUD: "ENEMIES LEFT n" (jets + kamikazes + ships + boss) right-aligned under the bars, during a wave; it pops white and bigger when the count drops.
 - Tests: dogfight 155.
+
+## Slice 16n: moving ring courses + cyan chain laser (2026-11-26)
+T: "Change the rings to be bigger and twinkle and push around a scripted path. Make 3-4 different variations. If this is completed your laser powers up to big and cyan and your ship sparks / The cyan laser can chain multiple enemies possibly combo all of them. The enemies will spark blue instead of red if they will chain. When the cyan laser makes contact with enemy ship thunder also strikes the ship".
+- `scripts/dogfight/df_rings.gd` (`DfRings`): one course of 5 rings at a time (the old static hoops are gone). Rings 1.8x bigger (hit radius 29 m, was 16), each ring rides a scripted path: SLALOM, CORKSCREW, LOOP WHEEL, SKY STAIRS (sideways speeds ~15-20 m/s). Fly them in order (next ring gold, twinkling star glints) within 25 s of the first; out of time = reset; done = a different variation appears after 6 s. Courses avoid ground + spires and stay under the 300 m ceiling (lowest of 8 headings).
+- Course clear: `_supercharge()`: laser fully charged + cyan, the jet crackles with cyan sparks until it fires, button reads CYAN / CHAIN!.
+- Cyan shot: a big cyan beam to the locked target, then the chain hops (every 0.13 s) to the nearest live enemy within 380 m (jets, kamikazes, ships, the boss), no cap. While armed, every enemy the chain will reach sparks / glows blue. Every cyan hit = a lightning strike from the sky + blue blast + thunder; jets are KO'd, the gunship takes 420 + rotor damage, ships 240. "CHAIN xN!" combo, 120 x hop number points.
+- HUD: "RINGS n/5 · Ns" (red under 6 s), gold marker / edge arrow on the next ring. Sounds: zap, thunder, power_up (tools/make_sfx.py). Dialogue: df_supercharge (+ caveman). Replays record the zaps.
+- Demo: `--dfdemo=rings` or `rings_slalom|corkscrew|loop|stairs`. Scripted pilot clears each course in 8.6-13.4 s.
+- Tests: dogfight 184 (4 variations move + stay clear of the ground, in-order passes, reset, chain KOs 4 lined-up jets with 4 strikes and skips one out of range).

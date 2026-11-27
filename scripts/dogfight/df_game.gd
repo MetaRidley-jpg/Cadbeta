@@ -91,6 +91,18 @@ const LASER_LINGER := 0.45
 const LASER_BURST := 0.45       # seconds of the burst out of the cyclops visor
 const VISOR_FWD := 9.0          # m from jet center to the cyclops visor
 const LASER_SHIP_DMG := 80.0
+# Cyan laser (T, 2026-11-26): a cleared ring course supercharges the laser: big and cyan, the
+# jet sparks until it fires. "The cyan laser can chain multiple enemies possibly combo all of
+# them. The enemies will spark blue instead of red if they will chain. When the cyan laser
+# makes contact with enemy ship thunder also strikes the ship".
+const CYAN := Color("39f3ff")
+const CHAIN_RANGE := 380.0      # m from one chained enemy to the next
+const CHAIN_HOP := 0.13         # s between hops
+const CYAN_BOSS_DMG := 420.0    # cyan hit on the gunship hull (normal laser: 260)
+const CYAN_SHIP_DMG := 240.0
+const STRIKE_LIFE := 0.4
+const ARC_LIFE := 0.35
+const CHAIN_SCORE := 120.0      # per hop, times the hop number (combo)
 const BOOST_FOV := [70.0, 82.0, 90.0, 104.0]
 
 @onready var viewport: SubViewport = %Viewport
@@ -103,6 +115,7 @@ const BOOST_FOV := [70.0, 82.0, 90.0, 104.0]
 @onready var center_msg: Label = %CenterMsg
 @onready var sub_msg: Label = %SubMsg
 @onready var enemies_label: Label = %EnemiesLabel
+@onready var rings_label: Label = %RingsLabel
 @onready var flash_rect: ColorRect = %Flash
 @onready var quit_button: Button = %QuitButton
 
@@ -178,6 +191,12 @@ var laser_target: Variant = null # {"e": DfPlane} or {"s": ship dict}
 var lasers: Array = []           # {t, target, end: Vector3, hit: bool}
 var muzzle_t := 0.0              # muzzle flash timer (render)
 var laser_burst_t := 0.0         # visor burst timer (render), counts down from LASER_BURST
+var laser_burst_cyan := false
+var cyan_laser := false          # supercharged by a ring course; spent by the next shot
+var chain_preview: Array = []    # targets the armed cyan laser would chain (sparks blue)
+var zaps: Array = []             # {a, b, t, life, kind: "arc" | "strike", seed}
+var _chain: Dictionary = {}      # running chain: {list, i, t, last, hits}
+var rings := DfRings.new()
 var _laser_key_was := false
 var force_boost := false         # debug / screenshots
 var debug_stage := 0             # debug: pin the boost stage (1..3)
@@ -252,6 +271,11 @@ func start(seed_value := -1) -> void:
 	world.build(rng.randi_range(1, 9999) if seed_value < 0 else seed_value)
 	weather = DfWeather.new()
 	weather.setup(world)
+	rings.setup(func(p: Vector3) -> float: return world.ground_y(p), (seed_value if seed_value >= 0 else rng.randi()) + 77, world.spires)
+	cyan_laser = false
+	chain_preview = []
+	zaps = []
+	_chain = {}
 	weather.lightning.connect(_on_lightning)
 	weather.asteroid_impact.connect(_on_impact)
 	fx = DfFx.new()
@@ -337,6 +361,7 @@ func sim_step(dt: float) -> void:
 	world.tick(dt)
 	weather.tick(dt)
 	fx.tick(dt)
+	_zaps_step(dt)
 	match state:
 		"intro":
 			_timer -= dt
@@ -366,7 +391,7 @@ func sim_step(dt: float) -> void:
 	ast_glance_t = maxf(0.0, ast_glance_t - dt)
 	_shock_step(dt)
 	_debris_step(dt)
-	if state == "wave" and demo != "beach" and enemies.is_empty() and _ships_alive() == 0 and not weather.asteroid_active:
+	if state == "wave" and demo != "beach" and not (demo == "rings" and _demo_phase != "chain_done") and enemies.is_empty() and _ships_alive() == 0 and not weather.asteroid_active:
 		_on_wave_clear()
 	_hit_say_cd = maxf(0.0, _hit_say_cd - dt)
 	_low_say_cd = maxf(0.0, _low_say_cd - dt)
@@ -433,18 +458,25 @@ func _player_step(dt: float) -> void:
 		player.boost += BOOST_DRIFT * dt * absf(player.turn)
 		score += 4.0 * dt
 	player.boost = minf(player.boost, 100.0)
-	var h := world.hoop_crossed(prev, player.position)
-	if h >= 0:
-		world.use_hoop(h)
+	# ring courses (DfRings): fly the next ring, all of them in time = cyan laser
+	if state in ["wave", "break", "intro"] and demo == "":
+		if rings.tick(dt, player.position, player.forward()) == "fail":
+			_show_msg("RINGS RESET", 1.2, "Too slow: start again from ring 1")
+			Sfx.play("lose", -8.0, 0.0)
+	if rings.active() and rings.crossed(prev, player.position):
+		var done := rings.pass_ring()
 		player.boost = minf(100.0, player.boost + BOOST_HOOP)
 		player.speed += 25.0
 		score += 50.0
-		_show_msg("HOOP! +BOOST", 0.9)
 		Sfx.play("hoop", -4.0, 0.0)
-		fx.puff(player.position + player.forward() * 8.0, Color("f26a1b"), 3.0, 10.0, 0.3)
-		if _hoop_say_cd <= 0.0:
-			_hoop_say_cd = 15.0
-			Game.say.emit("df_hoop", 1)
+		fx.puff(player.position + player.forward() * 8.0, Color("ffd23f"), 3.0, 10.0, 0.3)
+		if done:
+			_supercharge()
+		else:
+			_show_msg("RING %d/%d" % [rings.next, DfRings.RINGS], 0.9, "+BOOST")
+			if _hoop_say_cd <= 0.0:
+				_hoop_say_cd = 15.0
+				Game.say.emit("df_hoop", 1)
 	# guns: auto-fire at anything inside the cone
 	_fire_cd -= dt
 	_target_lock = _gun_target()
@@ -493,6 +525,9 @@ func start_demo(name: String) -> void:
 		return
 	if name == "beach":
 		_start_demo_beach()
+		return
+	if name.begins_with("rings"):          # "rings" or "rings_<kind>": a course, then a cyan chain
+		_start_demo_rings(name.trim_prefix("rings").trim_prefix("_"))
 		return
 	demo = name
 	_demo_t = 0.0
@@ -765,6 +800,69 @@ func _start_demo_beach() -> void:
 	_cam_up = Vector3.UP
 	_update_camera(0.0)
 
+## "rings" (slice 16n, T: rings that move + twinkle, a cleared course = cyan chain laser):
+## fly one course ring by ring, get supercharged, then 5 jets show up ahead in a loose line
+## and the cyan laser chains them, lightning on each.
+func _start_demo_rings(kind := "") -> void:
+	demo = "rings"
+	wave = 1
+	_demo_t = 0.0
+	_demo_phase = "rings"
+	demo_log.clear()
+	enemies.clear()
+	ships.clear()
+	weather.set_preset("morning", true)
+	state = "wave"
+	player.position = Vector3(0, 140, 600)
+	player.yaw = 0.0
+	player.pitch = 0.0
+	player.speed = 95.0
+	player.vel = player.forward() * 95.0
+	rings.spawn(player.position - player.forward() * 300.0, player.forward(), kind if kind != "" else "slalom")
+	_cam_up = Vector3.UP
+	_update_camera(0.0)
+
+func _demo_rings(dt: float) -> void:
+	player.boost_in = false
+	player.drift = false
+	match _demo_phase:
+		"rings":
+			player.speed_cap = 95.0
+			rings.tick(dt, player.position, player.forward())
+			if rings.next < rings.rings.size():
+				var nx: Vector3 = rings.pose(rings.next, rings.t + 0.35)[0]       # lead the moving ring
+				var st := player.steer_to(nx, 2.6)
+				player.turn = st.x
+				player.pitch_in = st.y
+			if cyan_laser:
+				demo_log.append("course clear %.2f s" % _demo_t)
+				_demo_phase = "chain"
+				_demo_t = 0.0
+				var f := player.forward()
+				var sd := f.cross(Vector3.UP).normalized()
+				for k in 5:
+					var e := DfPlane.new()
+					var ep := player.position + f * (520.0 + 170.0 * k) + sd * (60.0 if k % 2 else -60.0)
+					ep.y = maxf(player.position.y, world.ground_y(ep) + 90.0) + 10.0 * k      # above the terrain
+					e.setup("fighter", ep, 0.0)
+					e.yaw = player.yaw + PI
+					e.speed = 40.0
+					e.speed_cap = 40.0
+					e.vel = e.forward() * 40.0
+					enemies.append(e)
+		"chain":
+			player.speed_cap = 80.0
+			if not enemies.is_empty():
+				var st2 := player.steer_to(enemies[0].position, 1.6)
+				player.turn = st2.x
+				player.pitch_in = st2.y
+			if cyan_laser and laser_target != null and (chain_preview.size() >= 4 or _demo_t > 2.5):
+				demo_log.append("cyan fired, chain %d" % chain_preview.size())
+				fire_laser()
+				_demo_phase = "chain_done"
+		"chain_done":
+			player.speed_cap = 80.0
+
 func _demo_beach() -> void:
 	var isl: Dictionary = world.islands[0]
 	var c: Vector3 = isl.pos
@@ -936,6 +1034,10 @@ func _demo_inputs(dt: float) -> void:
 	if demo == "beach":
 		_demo_t += dt
 		_demo_beach()
+		return
+	if demo == "rings":
+		_demo_t += dt
+		_demo_rings(dt)
 		return
 	if demo == "boss" or demo == "bossko":
 		_demo_t += dt
@@ -1183,6 +1285,8 @@ func _laser_step(dt: float) -> void:
 	if laser_charge >= 1.0 and not was_ready:
 		Sfx.play("laser_charge", -6.0, 0.0)
 	laser_target = _find_laser_target()
+	chain_preview = _chain_from(laser_target) if cyan_laser and laser_target != null else []
+	controls.laser_cyan = cyan_laser
 	controls.laser_charge = laser_charge
 	controls.laser_locked = laser_target != null
 	controls.queue_redraw()
@@ -1196,6 +1300,12 @@ func _laser_step(dt: float) -> void:
 		b.t += dt
 		if _target_alive(b.target):
 			b.end = target_pos(b.target)
+		if not b.hit and b.t >= LASER_TRAVEL and b.get("cyan", false):
+			b.hit = true
+			_shake = maxf(_shake, 0.9)
+			if _target_alive(b.target):
+				_cyan_hit(b.target)
+			_chain = {"list": b.chain, "i": 1, "t": 0.0, "last": b.end, "hits": 1}
 		if not b.hit and b.t >= LASER_TRAVEL:
 			b.hit = true
 			fx.laser_explosion(b.end)
@@ -1227,6 +1337,7 @@ func _laser_step(dt: float) -> void:
 		if b.t < LASER_TRAVEL + LASER_LINGER:
 			keep.append(b)
 	lasers = keep
+	_chain_step(dt)
 
 func fire_laser() -> void:
 	Sfx.play("laser_fire", 0.0, 0.0)
@@ -1235,8 +1346,16 @@ func fire_laser() -> void:
 	laser_charge = 0.0
 	laser_burst_t = LASER_BURST
 	_shake = maxf(_shake, 0.35)
-	lasers.append({"t": 0.0, "target": laser_target, "end": target_pos(laser_target), "hit": false,
-		"curl": rng.randf_range(-1.0, 1.0)})
+	var beam := {"t": 0.0, "target": laser_target, "end": target_pos(laser_target), "hit": false,
+		"curl": rng.randf_range(-1.0, 1.0)}
+	laser_burst_cyan = cyan_laser
+	if cyan_laser:
+		beam.cyan = true
+		beam.chain = _chain_from(laser_target)
+		cyan_laser = false
+		chain_preview = []
+		Sfx.play("zap", -2.0, 0.0)
+	lasers.append(beam)
 	score += 25.0
 	Game.say.emit("df_laser", 2)
 
@@ -1253,6 +1372,112 @@ func laser_point(b: Dictionary, u: float) -> Vector3:
 	var p2 := p3 + (p0 - p3) * 0.25 + Vector3.UP * 45.0 - side * 30.0 * float(b.curl)
 	var v := 1.0 - u
 	return p0 * v * v * v + p1 * 3.0 * v * v * u + p2 * 3.0 * v * u * u + p3 * u * u * u
+
+# ---------------------------------------------------------------- cyan laser
+func _supercharge() -> void:
+	cyan_laser = true
+	laser_charge = 1.0
+	score += 500.0
+	_show_msg("COURSE CLEAR!", 2.2, "LASER SUPERCHARGED · CYAN CHAIN")
+	Sfx.play("power_up", 0.0, 0.0)
+	for k in 10:                     # a crackle of cyan flecks around the jet (a blast this close filled the screen)
+		var off := Vector3(rng.randf_range(-1, 1), rng.randf_range(-0.4, 0.8), rng.randf_range(-1, 1)).normalized() * rng.randf_range(6.0, 14.0)
+		fx.puff(player.position + off, CYAN if k % 3 else Color.WHITE, 1.2, 0.2, 0.45, player.vel + off * 5.0)
+	Game.say.emit("df_supercharge", 2)
+
+func _target_key(t: Variant) -> Variant:
+	return t.e if t.has("e") else t.s
+
+## The chain the cyan laser would follow from `first`: each hop jumps to the nearest live
+## enemy (jet, kamikaze, boss or ship) within CHAIN_RANGE of the last one. No cap: one shot
+## can chain the whole wave.
+func _chain_from(first: Variant) -> Array:
+	if first == null or not _target_alive(first):
+		return []
+	var out: Array = [first]
+	var used: Array = [_target_key(first)]
+	var cur := target_pos(first)
+	while true:
+		var best: Variant = null
+		var bd := CHAIN_RANGE
+		for e in enemies:
+			if e.alive and not used.has(e):
+				var d: float = e.position.distance_to(cur)
+				if d < bd:
+					bd = d
+					best = {"e": e}
+		for sh in ships:
+			if sh.alive and not used.has(sh):
+				var d: float = (sh.pos as Vector3).distance_to(cur)
+				if d < bd:
+					bd = d
+					best = {"s": sh}
+		if best == null:
+			break
+		out.append(best)
+		used.append(_target_key(best))
+		cur = target_pos(best)
+	return out
+
+func _chain_step(dt: float) -> void:
+	if _chain.is_empty():
+		return
+	_chain.t += dt
+	var list: Array = _chain.list
+	while _chain.t >= CHAIN_HOP and int(_chain.i) < list.size():
+		_chain.t -= CHAIN_HOP
+		var tgt: Variant = list[_chain.i]
+		_chain.i = int(_chain.i) + 1
+		if not _target_alive(tgt):
+			continue                       # died on the way: the arc skips it
+		var p := target_pos(tgt)
+		zaps.append({"a": _chain.last, "b": p, "t": 0.0, "life": ARC_LIFE, "kind": "arc", "seed": rng.randi()})
+		Sfx.play("zap", -6.0, 0.15)
+		_chain.last = p
+		_chain.hits = int(_chain.hits) + 1
+		score += CHAIN_SCORE * float(_chain.hits)
+		_cyan_hit(tgt)
+	if int(_chain.i) >= list.size():
+		if int(_chain.hits) >= 2:
+			_show_msg("CHAIN x%d!" % int(_chain.hits), 1.4, "+%d" % int(CHAIN_SCORE * _chain.hits * (_chain.hits + 1) / 2.0))
+		_chain = {}
+
+## One cyan hit: lightning strikes from the sky, a blue blast, heavy damage.
+func _cyan_hit(t: Variant) -> void:
+	var p := target_pos(t)
+	zaps.append({"a": p + Vector3(rng.randf_range(-40, 40), 420.0, rng.randf_range(-40, 40)), "b": p, "t": 0.0, "life": STRIKE_LIFE, "kind": "strike", "seed": rng.randi()})
+	fx.beam_explosion(p, 0.8)
+	Sfx.play("thunder", -3.0, 0.1)
+	_white_flash = maxf(_white_flash, 0.35)
+	_shake = maxf(_shake, 0.8)
+	if t.has("e"):
+		var e: DfPlane = t.e
+		e.last_hit_by_player = 0.0
+		if e.kind == "boss":
+			for k in 4:                      # the strike fries every live rotor a little
+				if float(boss_st.rotors[k]) > 0.0:
+					boss_st.rotors[k] = float(boss_st.rotors[k]) - LASER_ROTOR_DMG * 0.5
+					if float(boss_st.rotors[k]) <= 0.0:
+						_rotor_down(e, k)
+			if boss != null and e.alive:
+				if e.damage(CYAN_BOSS_DMG):
+					_kill_enemy(e, "player")
+				else:
+					_check_phase2()
+		elif e.damage(9999.0):
+			_kill_enemy(e, "player")
+	else:
+		_damage_ship(t.s, CYAN_SHIP_DMG)
+
+func _zaps_step(dt: float) -> void:
+	if zaps.is_empty():
+		return
+	var keep: Array = []
+	for z in zaps:
+		z.t = float(z.t) + dt
+		if float(z.t) < float(z.life):
+			keep.append(z)
+	zaps = keep
 
 func _drop_bomb() -> void:
 	Sfx.play("bomb_drop", -6.0)
@@ -2277,6 +2502,11 @@ func enemies_left() -> int:
 func _update_enemies_left(real: float) -> void:
 	if enemies_label == null:
 		return
+	if rings_label != null:
+		rings_label.visible = rings.active() and rings.timer >= 0.0 and state in ["wave", "break", "intro"]
+		if rings_label.visible:
+			rings_label.text = "RINGS %d/%d · %ds" % [rings.next, DfRings.RINGS, int(ceil(rings.time_left()))]
+			rings_label.add_theme_color_override("font_color", Color("ff4b4b") if rings.time_left() < 6.0 else Color("ffd23f"))
 	var n := enemies_left()
 	enemies_label.visible = state == "wave" and n > 0
 	if n < _left_last:
@@ -2335,6 +2565,8 @@ func _draw_hud() -> void:
 			items.append([s.pos, Color("d6dde8"), 1.3])
 	if weather.asteroid_active:
 		items.append([weather.asteroid_position(), Color("ff3c00"), 2.2])
+	if rings.active() and rings.next < rings.rings.size():
+		items.append([rings.rings[rings.next].pos, Color("ffd23f"), 2.0])   # the next ring
 	var volcano_marker := false
 	if weather.erupting:
 		var vp: Vector3 = world.volcano.pos + Vector3(0, world.volcano.height, 0)
@@ -2364,13 +2596,25 @@ func _draw_hud() -> void:
 			var ap: Vector2 = render.world_to_screen(player.position + player.forward() * 300.0) * SHRINK
 			draw_reticle(ap, idle_reticle_size(), Color(red, 0.55))
 		if laser_ready() and laser_target != null:
-			var lp := target_pos(laser_target)
-			var ls: Vector2 = render.world_to_screen(lp) * SHRINK
-			var lz := render.project(lp)
-			if lz.z > 0.0:
-				var lsz := clampf(render.focal * SHRINK * 10.0 / maxf(lz.z, 1.0), 26.0, 52.0) + 6.0
-				draw_reticle(ls, lsz, red)
-				draw_sparks(ls, lsz * 0.85, red)
+			# cyan armed: every enemy the chain will reach sparks BLUE (normal laser: red)
+			var marks: Array = chain_preview if cyan_laser and not chain_preview.is_empty() else [laser_target]
+			var mcol := CYAN if cyan_laser else red
+			for mk in marks:
+				var lp := target_pos(mk)
+				var ls: Vector2 = render.world_to_screen(lp) * SHRINK
+				var lz := render.project(lp)
+				if lz.z > 0.0:
+					var lsz := clampf(render.focal * SHRINK * 10.0 / maxf(lz.z, 1.0), 26.0, 52.0) + 6.0
+					draw_reticle(ls, lsz, mcol)
+					draw_sparks(ls, lsz * 0.85, mcol)
+		if cyan_laser and player.alive:      # supercharged: the jet crackles
+			var pp := render.project(player.position)
+			if pp.z > 0.0:
+				var ps: Vector2 = render.world_to_screen(player.position) * SHRINK
+				var pr2 := clampf(render.focal * SHRINK * 12.0 / maxf(pp.z, 1.0), 30.0, 90.0)
+				hud.draw_circle(ps, pr2 * 0.9, Color(CYAN, 0.08 + 0.05 * sin(Time.get_ticks_msec() * 0.02)))
+				draw_sparks(ps, pr2, CYAN)
+				draw_sparks(ps + Vector2(randf_range(-pr2, pr2) * 0.4, 0), pr2 * 0.7, Color(0.75, 1.0, 1.0))
 	# altimeter: left edge
 	var top_y := 150.0
 	var bot_y := rect.size.y - 330.0

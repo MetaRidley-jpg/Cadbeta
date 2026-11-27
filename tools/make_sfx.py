@@ -65,3 +65,7 @@ k = n(0.12); save("buy", crush(sq(np.linspace(500, 1000, k), k, 0.5) * env(k, 0.
 k = n(3.2); save("impact_rumble", crush(lp(noise(k), 0.025) * 4 + sq(np.linspace(48, 18, k), k, 0.5) * 0.6 + lp(noise(k), 0.3) * 1.5 * env(k, 0.001, 0.4, 2), 10) * env(k, 0.003, 3.2, 1.4), 1.0)   # asteroid impact
 k = n(0.3); save("crunch", crush(lp(noise(k), 0.5) * (np.sin(np.arange(k) / SR * 2 * np.pi * 18) > 0) * env(k, 0.002, 0.3, 1), 8), 0.5)
 print("wrote", len(os.listdir(OUT)), "sounds to", OUT)
+# --- slice 16n: cyan laser chain
+k = n(0.28); save("zap", crush(np.sign(np.sin(np.cumsum(np.linspace(2400, 700, k) + noise(k) * 900) / SR * 2 * np.pi)) * 0.6 + noise(k) * 0.4 * (np.sin(np.arange(k) / SR * 2 * np.pi * 45) > 0), 10) * env(k, 0.001, 0.28, 1.6), 0.55)   # electric chain hop
+k = n(1.6); crack = noise(k) * env(k, 0.0005, 0.12, 2.5); save("thunder", crush(crack * 1.6 + lp(noise(k), 0.03) * 5 * env(k, 0.02, 1.6, 1.2) + sq(np.linspace(60, 28, k), k, 0.5) * 0.35 * env(k, 0.01, 1.2, 1.5), 12), 0.95)   # lightning strike
+k = n(0.9); f = np.where(np.arange(k) < k // 4, 523, np.where(np.arange(k) < k // 2, 659, np.where(np.arange(k) < 3 * k // 4, 784, 1047))); save("power_up", crush(sq(f, k, 0.25) * 0.6 + sq(f * 2.01, k, 0.5) * 0.25) * env(k, 0.003, 0.9, 0.9), 0.45)   # course clear: laser supercharged

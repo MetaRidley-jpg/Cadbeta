@@ -245,12 +245,40 @@ func _ready() -> void:
 	check(rr.cam_up.y < -0.99 and rr.project(Vector3(0, 120, 0)).y > rr.anchor.y, "camera upside down: things above you are low on screen")
 	rr.set_camera_frame(Vector3(0, 100, 0), Vector3(0, 300, -0.0001), Vector3(0, 0, -1))
 	check(rr.cam_fwd.y > 0.99 and is_finite(rr.cam_right.x), "camera straight up stays valid")
-	# hoop crossing
-	var h: Dictionary = w.hoops[0]
-	var hp: Vector3 = h.pos
-	var hn: Vector3 = h.normal
-	check(w.hoop_crossed(hp - hn * 5.0, hp + hn * 5.0) == 0, "flying through a hoop is detected")
-	check(w.hoop_crossed(hp - hn * 5.0 + Vector3.UP * 40.0, hp + hn * 5.0 + Vector3.UP * 40.0) == -1, "missing the hoop is not")
+	# ring courses (slice 16n): bigger, moving, in order, 4 variations
+	check(w.hoops.is_empty(), "the old static hoops are gone")
+	var rc := DfRings.new()
+	rc.setup(func(pp: Vector3) -> float: return w.ground_y(pp), 5)
+	var ring_kinds := {}
+	for rkind in DfRings.KINDS:
+		rc.spawn(Vector3(0, 100, 0), Vector3.FORWARD, rkind)
+		ring_kinds[rc.kind] = true
+		var rp0: Vector3 = rc.rings[1].pos
+		rc.tick(1.0, Vector3(0, 100, 0), Vector3.FORWARD)
+		check(rc.rings[1].pos.distance_to(rp0) > 3.0, "%s rings move on their path (%.1f m in 1 s)" % [rkind, rc.rings[1].pos.distance_to(rp0)])
+		var lowc := INF
+		for rr2 in rc.rings:
+			lowc = minf(lowc, rr2.pos.y - w.ground_y(rr2.pos))
+		check(lowc > 15.0, "%s rings stay above the ground (%.0f m)" % [rkind, lowc])
+	check(ring_kinds.size() == 4, "4 ring course variations")
+	check(DfRings.RING_RADIUS > w.HOOP_RADIUS * 1.5, "rings are bigger than the old hoops")
+	rc.spawn(Vector3(0, 100, 0), Vector3.FORWARD, "slalom")
+	var rg1: Dictionary = rc.rings[1]
+	check(not rc.crossed(rg1.pos - rg1.normal * 5.0, rg1.pos + rg1.normal * 5.0), "ring 2 does not count before ring 1")
+	var rdone := false
+	for i in DfRings.RINGS:
+		var rgi: Dictionary = rc.rings[i]
+		var rok := rc.crossed(rgi.pos - rgi.normal * 5.0, rgi.pos + rgi.normal * 5.0)
+		check(rok, "ring %d in order is detected" % (i + 1))
+		rdone = rc.pass_ring()
+	check(rdone and rc.completed == 1 and rc.last_event == "done", "all rings = course done")
+	rc.spawn(Vector3(0, 100, 0), Vector3.FORWARD, "loop")
+	var rg0: Dictionary = rc.rings[0]
+	check(not rc.crossed(rg0.pos - rg0.normal * 5.0 + Vector3.UP * 60.0, rg0.pos + rg0.normal * 5.0 + Vector3.UP * 60.0), "missing the ring is not a pass")
+	rc.pass_ring()
+	for k in 26:
+		rc.tick(1.0, Vector3(0, 100, 0), Vector3.FORWARD)
+	check(rc.next == 0 and not rc.rings[0].passed, "out of time: the course resets")
 
 	# run the intro and wave 1 start
 	for k in 100:
@@ -718,6 +746,57 @@ func _ready() -> void:
 			break
 	df._update_hud(0.016)
 	check(df.enemies_left() == n0 - 1 and df._left_pop > 0.0, "the counter drops and pops on a kill")
+	df.stop()
+
+	# ---------------- slice 16n: course clear -> cyan laser chain + lightning
+	df.start(77)
+	df.set_process(false)
+	df.state = "wave"
+	df.enemies.clear()
+	var lineup: Array = []
+	for k in 4:                       # 4 jets in a rough line ahead, 250 m apart
+		var cen := DfPlane.new()
+		cen.setup("fighter", df.player.position + df.player.forward() * (300.0 + 250.0 * k) + Vector3(30.0 * k, 0, 0), 0.0)
+		df.enemies.append(cen)
+		lineup.append(cen)
+	var farj := DfPlane.new()          # too far from the chain: must not be hit
+	farj.setup("fighter", df.player.position + df.player.forward() * 300.0 + Vector3(1500, 0, 0), 0.0)
+	df.enemies.append(farj)
+	df.rings.spawn(df.player.position, df.player.forward(), "slalom")
+	for i in DfRings.RINGS:
+		df.rings.pass_ring()
+	df._supercharge()
+	check(df.cyan_laser and df.laser_ready(), "course clear: laser supercharged (cyan, charged)")
+	df._laser_step(0.0)
+	check(df.laser_target != null, "cyan laser locks the nearest jet")
+	check(df.chain_preview.size() == 4, "chain preview covers the 4 lined-up jets, not the far one (%d)" % df.chain_preview.size())
+	check(df.controls.laser_cyan, "laser button turns cyan")
+	df.fire_laser()
+	check(not df.cyan_laser and df.lasers[0].get("cyan", false) and df.laser_burst_cyan, "the shot is cyan and spends the supercharge")
+	var nstrikes := 0
+	var narcs := 0
+	var csc0: float = df.score
+	for k in 60:
+		df._laser_step(1.0 / 30.0)
+		df._zaps_step(1.0 / 30.0)
+		for z in df.zaps:
+			if float(z.t) == 0.0 or float(z.t) <= 1.0 / 30.0 + 0.001:
+				if z.kind == "strike":
+					nstrikes += 1
+				else:
+					narcs += 1
+	var ndead := 0
+	for cen in lineup:
+		if not cen.alive:
+			ndead += 1
+	check(ndead == 4, "the chain KOs all 4 jets (%d)" % ndead)
+	check(farj.alive, "the far jet is out of chain range and survives")
+	check(nstrikes >= 4, "lightning strikes every chained jet (%d)" % nstrikes)
+	check(narcs >= 3, "cyan arcs jump jet to jet (%d)" % narcs)
+	check(df.score - csc0 > 3.0 * df.CHAIN_SCORE, "chain combo scores (+%d)" % int(df.score - csc0))
+	df.laser_charge = 1.0
+	df._laser_step(0.0)
+	check(df.chain_preview.is_empty(), "a normal laser shows no chain")
 	df.stop()
 
 	print("DOGFIGHT TESTS: %d passed, %d failed" % [passes, fails])

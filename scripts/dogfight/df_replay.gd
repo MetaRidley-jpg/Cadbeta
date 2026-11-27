@@ -55,6 +55,7 @@ func record(g: Node) -> void:
 		"debris": g.debris.duplicate(true),
 		"shock": g.shock.duplicate(true),
 		"lasers": g.lasers.duplicate(true),
+		"zaps": g.zaps.duplicate(true),
 		"burst": g.laser_burst_t,
 		"muzzle": g.muzzle_t,
 		"boss_id": g.boss.get_instance_id() if g.boss != null else 0,
@@ -81,7 +82,7 @@ func begin(g: Node, ko_info: Dictionary) -> void:
 	_fixed.clear()
 	_ghosts.clear()
 	_saved = {"player": g.player, "enemies": g.enemies, "projectiles": g.projectiles, "puffs": g.fx.puffs,
-		"blasts": g.fx.blasts, "ships": g.ships, "debris": g.debris, "shock": g.shock, "lasers": g.lasers,
+		"blasts": g.fx.blasts, "ships": g.ships, "debris": g.debris, "shock": g.shock, "lasers": g.lasers, "zaps": g.zaps,
 		"burst": g.laser_burst_t, "muzzle": g.muzzle_t, "target": g.laser_target,
 		"boss": g.boss, "boss_st": g.boss_st}
 	g.laser_target = null
@@ -111,6 +112,7 @@ func end(g: Node) -> void:
 	g.debris = _saved.debris
 	g.shock = _saved.shock
 	g.lasers = _saved.lasers
+	g.zaps = _saved.get("zaps", [])
 	g.laser_burst_t = _saved.burst
 	g.muzzle_t = _saved.muzzle
 	g.laser_target = _saved.target
@@ -167,6 +169,7 @@ func _apply(g: Node) -> void:
 	g.debris = fa.debris
 	g.shock = fa.shock
 	g.lasers = fa.lasers
+	g.zaps = fa.get("zaps", [])
 	g.laser_burst_t = fa.burst
 	g.muzzle_t = fa.muzzle
 	var bid: int = fa.get("boss_id", 0)       # the gunship + its beam play back too

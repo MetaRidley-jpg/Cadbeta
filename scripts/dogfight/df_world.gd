@@ -108,10 +108,8 @@ func build(seed_value := 7) -> void:
 				var out := Vector2(p.x - isl.pos.x, p.z - isl.pos.z)
 				# the art leans to +x; yaw turns +x to (cos a, 0, sin a) with yaw = -a
 				palms.append({"pos": p, "alive": true, "yaw": -atan2(out.y, out.x) + rng.randf_range(-0.5, 0.5)})
-	for k in 8:
-		var h := {"pos": Vector3.ZERO, "normal": Vector3.FORWARD, "yaw": 0.0, "cooldown": 0.0}
-		hoops.append(h)
-		_place_hoop(h)
+	# the old static hoops are replaced by moving ring courses (DfRings, slice 16n);
+	# the hoop helpers stay for tests / tools
 
 func _random_on_island(isl: Dictionary, frac: float) -> Vector3:
 	var a := rng.randf() * TAU

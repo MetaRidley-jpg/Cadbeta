@@ -16,6 +16,7 @@ var roll_queued := false    # double-tap the stick = barrel roll
 var _last_stick_up := -10.0
 var laser_charge := 0.0     # set by the game (0..1)
 var laser_locked := false
+var laser_cyan := false      # supercharged by a ring course
 var enabled := true
 
 var _touches := {}          # index -> role
@@ -125,7 +126,7 @@ func _draw() -> void:
 		draw_string(font, c + Vector2(-70, 6), "DRAG TO STEER", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, dim)
 		draw_string(font, c + Vector2(-70, 28), "DOUBLE-TAP: ROLL", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, dim)
 	var bc := button_centers()
-	var cols := {"boost": Color("f26a1b"), "drift": Color("43c6b8"), "bomb": Color("efe6d2"), "laser": Color("ff1f4b")}
+	var cols := {"boost": Color("f26a1b"), "drift": Color("43c6b8"), "bomb": Color("efe6d2"), "laser": Color("39f3ff") if laser_cyan else Color("ff1f4b")}
 	var ready := laser_charge >= 1.0
 	var on := {"boost": boost, "drift": drift, "bomb": bomb_queued, "laser": ready and laser_locked}
 	for k in bc:
@@ -137,6 +138,6 @@ func _draw() -> void:
 				Color(col, 1.0 if ready else 0.6), 5.0)
 		var t: String = k.to_upper()
 		if k == "laser" and ready:
-			t = "FIRE!" if laser_locked else "READY"
+			t = ("CHAIN!" if laser_cyan else "FIRE!") if laser_locked else ("CYAN" if laser_cyan else "READY")
 		var tw := font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
 		draw_string(font, bc[k] + Vector2(-tw / 2.0, 6), t, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, white)

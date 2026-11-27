@@ -982,21 +982,46 @@ func _draw_units() -> void:
 	for s in game.ships:
 		if s.alive:
 			_queue_sprite(list, spr.ship, s.pos + Vector3(0, sin(s.bob * 1.3) * 0.8, 0), s.yaw)
-	for h in world.hoops:
-		if h.cooldown <= 0.0:
-			_queue_sprite(list, spr.hoop, h.pos, h.yaw)
+	# ring courses (DfRings): big moving rings; the next one is gold and twinkles hardest
+	var rg: DfRings = game.rings
+	if rg.active():
+		for i in rg.rings.size():
+			var r: Dictionary = rg.rings[i]
+			if r.passed and float(r.pop) <= 0.0:
+				continue
+			var n: Vector3 = r.normal
+			var upv := Vector3.UP if absf(n.y) < 0.9 else rg.axis
+			var att := Basis.looking_at(n, upv)
+			if not r.passed:
+				var is_next: bool = i == rg.next
+				var mod := Color(1.4, 1.25, 0.7) if is_next else Color(1.0, 0.95, 0.9, 0.6)
+				mod = mod * (1.0 + 0.15 * sin(_t * 6.0 + i))
+				_queue_sprite(list, spr.hoop, r.pos, 0.0, DfRings.RING_SCALE, 0.0, mod, att)
+			var rp := project(r.pos)
+			if rp.z > 0.5 and rp.z < light_end:
+				list.append([rp.z - 0.5, "twinkle", r, rp, i == rg.next])
 	var glow_e: Variant = null
+	var glow_set: Array = []
 	if game.laser_ready() and game.laser_target != null and game.laser_target.has("e"):
 		glow_e = game.laser_target.e
+	if game.cyan_laser:
+		for t in game.chain_preview:
+			if t.has("e"):
+				glow_set.append(t.e)
 	for j in jets:
 		var mod := Color.WHITE
 		if j.kind != "player" and j.last_hit_by_player < 0.08:
 			mod = Color(2.2, 2.2, 2.2)
-		if j == glow_e:
+		if glow_set.has(j):
+			mod = Color(0.75, 1.5, 1.9)            # will chain: blue
+			var gp := project(j.position)
+			if gp.z > 0.0:
+				list.append([gp.z + 0.5, "glow", gp, true])
+		elif j == glow_e:
 			mod = Color(1.6, 0.7, 0.7)
 			var gp := project(j.position)
 			if gp.z > 0.0:
-				list.append([gp.z + 0.5, "glow", gp])
+				list.append([gp.z + 0.5, "glow", gp, false])
 		_queue_sprite(list, j.sprites(), j.position, j.yaw, 1.0, 0.0, mod, j.vis_basis())
 		if j.kind == "boss":
 			_queue_boss(list, j)
@@ -1018,6 +1043,12 @@ func _draw_units() -> void:
 	var pz := project(game.player.position).z
 	for b in game.lasers:
 		list.append([pz + 0.5 if pz > 0.0 else 0.01, "laser", b])
+	for z in game.zaps:             # cyan chain arcs + lightning strikes (lights: they cut fog)
+		var zb := project(z.b)
+		var za := project(z.a)
+		var zd := zb.z if zb.z > 0.0 else za.z
+		if zd > 0.5 and zd < light_end:
+			list.append([zd - 1.0, "zap", z])
 	if game.laser_burst_t > 0.0:     # the burst sits ON TOP of the jet: it comes out of the visor
 		var vz := project(game.visor_pos())
 		if vz.z > 0.5:
@@ -1129,9 +1160,14 @@ func _draw_units() -> void:
 				ci.draw_rect(Rect2(mc.round() - Vector2.ONE, Vector2(2, 2)), Color("fff2c0"))
 			"glow":
 				var g: Vector3 = it[2]
+				var blue: bool = it.size() > 3 and it[3]
 				var gr := focal / g.z * 13.0 * (1.0 + 0.12 * sin(_t * 12.0))
 				for k in 3:
-					ci.draw_circle(Vector2(g.x, g.y), gr * (1.0 - k * 0.25), Color(1.0, 0.1, 0.15, 0.13 + k * 0.07))
+					ci.draw_circle(Vector2(g.x, g.y), gr * (1.0 - k * 0.25), Color(0.2, 0.9, 1.0, 0.13 + k * 0.07) if blue else Color(1.0, 0.1, 0.15, 0.13 + k * 0.07))
+			"twinkle":
+				_draw_twinkle(ci, it[2], it[3], it[4])
+			"zap":
+				_draw_zap(ci, it[2])
 			"laser":
 				_draw_laser(ci, it[2])
 			"burst":
@@ -1261,6 +1297,7 @@ func _draw_flame(ci: CanvasItem, pl: DfPlane) -> void:
 ## Super laser: a thick beam (glow, bright red edge, dark core, hot center) with
 ## 4 twisting strands. Width follows distance, so it is huge near the jet.
 func _draw_laser(ci: CanvasItem, b: Dictionary) -> void:
+	var cyan: bool = b.get("cyan", false)
 	var head := clampf(float(b.t) / game.LASER_TRAVEL, 0.0, 1.0)
 	var fade := 1.0 - clampf((float(b.t) - game.LASER_TRAVEL) / game.LASER_LINGER, 0.0, 1.0)
 	var pts: Array = []
@@ -1272,11 +1309,14 @@ func _draw_laser(ci: CanvasItem, b: Dictionary) -> void:
 		if p3.z > 0.5:
 			pts.append(Vector2(p3.x, p3.y))
 			var pulse: float = 1.0 + 0.18 * sin(_t * 50.0 + i * 0.8)
-			ws.append(clampf(focal / p3.z * 2.8, 3.0, 22.0) * pulse * (0.35 + 0.65 * fade))
+			ws.append(clampf(focal / p3.z * 2.8 * (1.7 if cyan else 1.0), 3.0, 36.0 if cyan else 22.0) * pulse * (0.35 + 0.65 * fade))
 	if pts.size() < 2:
 		return
 	var layers := [[2.2, Color(1.0, 0.1, 0.2, 0.28 * fade)], [1.0, Color(1.0, 0.13, 0.2, fade)],
 		[0.55, Color(0.54, 0.03, 0.15, fade)], [0.18, Color(1.0, 0.9, 0.92, fade)]]
+	if cyan:     # supercharged: big cyan beam
+		layers = [[2.4, Color(0.2, 0.95, 1.0, 0.3 * fade)], [1.0, Color(0.22, 0.95, 1.0, fade)],
+			[0.55, Color(0.05, 0.45, 0.75, fade)], [0.2, Color(0.92, 1.0, 1.0, fade)]]
 	for L in layers:
 		for i in pts.size() - 1:
 			var w: float = maxf(1.0, ws[i] * float(L[0]))
@@ -1291,11 +1331,11 @@ func _draw_laser(ci: CanvasItem, b: Dictionary) -> void:
 			var pv: Vector2 = pts[maxi(i - 1, 0)]
 			var nrm := (nx - pv).orthogonal().normalized()
 			line.append(a + nrm * sin(i * 0.7 + _t * 30.0 + strand * 1.57) * float(ws[i]) * 0.95)
-		ci.draw_polyline(line, Color(1.0, 0.35, 0.4, fade), 1.0)
+		ci.draw_polyline(line, Color(0.55, 1.0, 1.0, fade) if cyan else Color(1.0, 0.35, 0.4, fade), 1.0)
 	var tip: Vector2 = pts[pts.size() - 1]
 	var tw: float = ws[ws.size() - 1]
-	ci.draw_circle(tip, tw * 1.3, Color(1, 0.15, 0.25, 0.5 * fade))
-	ci.draw_circle(tip, tw * 0.7, Color(1, 0.9, 0.92, fade))
+	ci.draw_circle(tip, tw * 1.3, Color(0.2, 0.9, 1.0, 0.5 * fade) if cyan else Color(1, 0.15, 0.25, 0.5 * fade))
+	ci.draw_circle(tip, tw * 0.7, Color(0.92, 1, 1, fade) if cyan else Color(1, 0.9, 0.92, fade))
 
 ## Burst out of the cyclops visor when the super laser fires: flash, a horizontal
 ## lens streak across the visor, red rays and a shock ring.
@@ -1304,6 +1344,9 @@ func _draw_visor_burst(ci: CanvasItem, v: Vector3) -> void:
 	var k := focal / v.z
 	var u: float = 1.0 - game.laser_burst_t / game.LASER_BURST      # 0 -> 1
 	var a := 1.0 - u
+	if game.laser_burst_cyan:
+		_draw_visor_burst_cyan(ci, c, k, u, a)
+		return
 	var grow := minf(1.0, u * 4.0)
 	# horizontal cyclops streak
 	var sw := k * 26.0 * grow
@@ -1321,6 +1364,88 @@ func _draw_visor_burst(ci: CanvasItem, v: Vector3) -> void:
 	ci.draw_arc(c, k * (2.0 + 14.0 * u), 0.0, TAU, 32, Color(1, 0.3, 0.35, a), maxf(1.0, 2.0 * a))
 	ci.draw_circle(c, k * 3.2 * (1.0 - u * 0.6), Color(1, 0.15, 0.25, 0.7 * a))
 	ci.draw_circle(c, k * 1.8 * (1.0 - u * 0.6), Color(1, 1, 1, a))
+
+func _draw_visor_burst_cyan(ci: CanvasItem, c: Vector2, k: float, u: float, a: float) -> void:
+	var grow := minf(1.0, u * 4.0)
+	var sw := k * 40.0 * grow
+	ci.draw_rect(Rect2(c.x - sw, c.y - 3.0, sw * 2.0, 6.0), Color(0.2, 0.95, 1.0, 0.8 * a))
+	ci.draw_rect(Rect2(c.x - sw * 0.7, c.y - 1.0, sw * 1.4, 2.0), Color(0.95, 1, 1, a))
+	for i in 18:
+		var ang := TAU * i / 18.0 + sin(i * 7.3) * 0.2
+		var length := k * (10.0 + 14.0 * absf(sin(i * 3.1 + _t * 20.0))) * grow
+		var d := Vector2(cos(ang), sin(ang))
+		ci.draw_line(c + d * k * 1.2, c + d * length, Color(0.25, 0.95, 1.0, a), maxf(1.0, k * 1.1 * a))
+	ci.draw_arc(c, k * (3.0 + 20.0 * u), 0.0, TAU, 32, Color(0.4, 1.0, 1.0, a), maxf(1.0, 2.5 * a))
+	ci.draw_circle(c, k * 4.0 * (1.0 - u * 0.6), Color(0.2, 0.9, 1.0, 0.7 * a))
+	ci.draw_circle(c, k * 2.2 * (1.0 - u * 0.6), Color(1, 1, 1, a))
+
+## Ring sparkle: 4-point star glints that ride round the rim and pop in and out.
+## The next ring gets more and bigger gold glints; a just-passed ring bursts outward.
+func _draw_twinkle(ci: CanvasItem, r: Dictionary, p: Vector3, is_next: bool) -> void:
+	var c := Vector2(p.x, p.y)
+	var rad := focal / p.z * DfRings.RING_RADIUS * 0.95
+	if rad < 2.0:
+		return
+	var lf := _light_fade(p.z)
+	if r.passed:                                     # pop: a gold ring of sparks flies out
+		var k: float = 1.0 - float(r.pop) / 0.5
+		for i in 12:
+			var ang := TAU * i / 12.0
+			var d := Vector2(cos(ang), sin(ang))
+			_star(ci, c + d * rad * (1.0 + k * 1.2), maxf(1.5, rad * 0.18 * (1.0 - k)), Color(1.0, 0.85, 0.3, (1.0 - k) * lf))
+		return
+	var n := 8 if is_next else 4
+	var col := Color(1.0, 0.86, 0.3) if is_next else Color(0.75, 0.9, 1.0)
+	for i in n:
+		var ph := _t * (1.1 if is_next else 0.6) + i * TAU / n + float(r.pos.x) * 0.01
+		var tw := sin(_t * 7.0 + i * 2.3 + float(r.pos.z) * 0.03)
+		if tw < 0.1:
+			continue                                 # twinkle: each glint blinks on and off
+		var d := Vector2(cos(ph), sin(ph) * 0.85)
+		_star(ci, c + d * rad, maxf(2.0, rad * (0.28 if is_next else 0.17) * tw), Color(col, tw * lf))
+
+func _star(ci: CanvasItem, c: Vector2, s: float, col: Color) -> void:
+	ci.draw_line(c - Vector2(s, 0), c + Vector2(s, 0), col, 1.0)
+	ci.draw_line(c - Vector2(0, s), c + Vector2(0, s), col, 1.0)
+	ci.draw_line(c - Vector2(s, s) * 0.35, c + Vector2(s, s) * 0.35, Color(col, col.a * 0.6), 1.0)
+	ci.draw_line(c - Vector2(s, -s) * 0.35, c + Vector2(s, -s) * 0.35, Color(col, col.a * 0.6), 1.0)
+	ci.draw_rect(Rect2(c.round() - Vector2.ONE, Vector2(2, 2)), Color(1, 1, 1, col.a))
+
+## Cyan chain arc (enemy -> enemy) or a lightning strike (sky -> enemy): a jagged bolt with
+## a branch, re-rolled a few times a second so it crackles. Glow + white core.
+func _draw_zap(ci: CanvasItem, z: Dictionary) -> void:
+	var a3 := project(z.a)
+	var b3 := project(z.b)
+	if b3.z <= 0.5:
+		return
+	var b := Vector2(b3.x, b3.y)
+	var a := Vector2(a3.x, a3.y) if a3.z > 0.5 else b + Vector2(0, -view_size.y * 1.2)   # source behind the camera: from the top
+	var k := 1.0 - float(z.t) / float(z.life)
+	var strike: bool = z.kind == "strike"
+	var r := RandomNumberGenerator.new()
+	r.seed = int(z.seed) + int(_t * 18.0)
+	var segs := 9 if strike else 7
+	var pts := PackedVector2Array([a])
+	var dv := b - a
+	var nrm := dv.orthogonal().normalized()
+	var jag := clampf(dv.length() * 0.09, 3.0, 26.0)
+	for i in range(1, segs):
+		pts.append(a + dv * float(i) / segs + nrm * r.randf_range(-jag, jag))
+	pts.append(b)
+	var glow := Color(0.25, 0.9, 1.0, 0.35 * k)
+	var core := Color(0.9, 1.0, 1.0, k)
+	var w := clampf(focal / b3.z * (3.2 if strike else 2.2), 2.0, 10.0)
+	ci.draw_polyline(pts, glow, w * 2.6)
+	ci.draw_polyline(pts, Color(0.3, 0.95, 1.0, k), w)
+	ci.draw_polyline(pts, core, maxf(1.0, w * 0.35))
+	# one branch off the middle
+	var m := pts[segs / 2]
+	var br := PackedVector2Array([m])
+	var bd := (dv.normalized().rotated(r.randf_range(-0.9, 0.9))) * dv.length() * 0.18
+	for i in 3:
+		br.append(m + bd * float(i + 1) / 3.0 + nrm * r.randf_range(-jag, jag) * 0.6)
+	ci.draw_polyline(br, Color(0.3, 0.95, 1.0, 0.7 * k), maxf(1.0, w * 0.5))
+	_halo(ci, b, clampf(focal / b3.z * 9.0, 6.0, 60.0) * k, Color(0.3, 0.9, 1.0, 0.6 * k))
 
 func _draw_projectile(ci: CanvasItem, pr: Dictionary, a: Vector3) -> void:
 	var at := Vector2(a.x, a.y).round()

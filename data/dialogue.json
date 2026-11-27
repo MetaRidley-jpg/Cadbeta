@@ -1077,5 +1077,25 @@
    "t": "BLUE FIRE BITE. OOGH. AGAIN.",
    "e": "feral"
   }
+ ],
+ "df_supercharge": [
+  {
+   "t": "Cyan?! You made it CYAN. Okay. Okay, I'm calm. Fire it at all of them.",
+   "e": "excited"
+  },
+  {
+   "t": "Rings done! Your laser's humming. So am I. Not because of you. Mostly.",
+   "e": "shy"
+  },
+  {
+   "t": "That's a chain laser now. Line them up and watch them pop.",
+   "e": "smug"
+  }
+ ],
+ "caveman.df_supercharge": [
+  {
+   "t": "BLUE ZAP! ZAP ALL BIRDS!",
+   "e": "feral"
+  }
  ]
 }
