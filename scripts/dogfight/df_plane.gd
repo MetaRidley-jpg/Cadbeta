@@ -42,6 +42,21 @@ var visible := true
 var kind := "player"
 var basis := Basis.IDENTITY
 var free := false              # player: full 360 flight
+# Ring launch (T: the rings "launch you to the next one and change your yaw"): for launch_t
+# seconds the jet flies straight along launch_dir at >= launch_speed while its nose (yaw and
+# pitch) swings onto that line. Steering input still applies on top.
+const LAUNCH_TURN := 14.0
+var launch_dir := Vector3.ZERO
+var launch_t := 0.0
+var launch_speed := 0.0
+
+func launch(dir: Vector3, time := 0.55, min_speed := 210.0) -> void:
+	if dir.length() < 0.01:
+		return
+	launch_dir = dir.normalized()
+	launch_t = time
+	launch_speed = min_speed
+	speed = maxf(speed, min_speed)
 var assist := true             # free flight: auto wings-level when you let go
 var yaw: float:                # heading (compat: read/write as before; writing clears roll)
 	get:
@@ -183,7 +198,15 @@ func step(dt: float) -> void:
 	speed -= forward().y * 22.0 * dt    # climbing costs speed, diving gains it
 	speed = clampf(speed, 60.0, 260.0)
 	var grip := DRIFT_GRIP if drift else GRIP
-	vel = vel.lerp(forward() * speed, clampf(grip * dt, 0.0, 1.0))
+	if launch_t > 0.0:
+		launch_t -= dt
+		speed = maxf(speed, launch_speed)
+		var up_hint := Vector3.UP if absf(launch_dir.y) < 0.95 else -basis.z
+		var tgt := Basis.looking_at(launch_dir, up_hint)
+		basis = basis.slerp(tgt, clampf(LAUNCH_TURN * dt, 0.0, 1.0)).orthonormalized()
+		vel = launch_dir * speed
+	else:
+		vel = vel.lerp(forward() * speed, clampf(grip * dt, 0.0, 1.0))
 	position += vel * dt
 	var bank := -turn * (1.15 if drift else 0.75)
 	roll_vis = lerpf(roll_vis, bank, clampf(6.0 * dt, 0.0, 1.0))

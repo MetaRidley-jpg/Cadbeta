@@ -16,9 +16,9 @@ extends RefCounted
 const KINDS := ["slalom", "corkscrew", "loop", "stairs"]
 const TITLES := {"slalom": "SLALOM", "corkscrew": "CORKSCREW", "loop": "LOOP WHEEL", "stairs": "SKY STAIRS"}
 const RINGS := 5
-const RING_RADIUS := 29.0        # hit radius (the old hoops: 16)
-const RING_SCALE := 1.8          # sprite scale vs the old hoop art
-const SPACING := 95.0            # m between rings along the course
+const RING_RADIUS := 42.0        # hit radius (old hoops 16; first ring courses 29). T: "skinnier and larger"
+const RING_SCALE := 1.5          # the thin ring model (radius 14 px x 2 m/px) x 1.5 = 42 m
+const SPACING := 110.0           # m between rings along the course (bigger rings, launches)
 const TIME_LIMIT := 25.0
 const RESPAWN := 6.0             # s before the next course appears
 const SPAWN_AHEAD := 650.0       # m in front of the player
@@ -86,8 +86,9 @@ func spawn(pos: Vector3, fwd: Vector3, kind_override := "") -> void:
 	cooldown = 0.0
 	rings.clear()
 	for i in RINGS:
-		rings.append({"pos": Vector3.ZERO, "normal": axis, "passed": false, "pop": 0.0})
+		rings.append({"pos": Vector3.ZERO, "normal": axis, "passed": false, "pop": 0.0, "ppos": Vector3.ZERO, "pnormal": axis})
 	_update_poses()
+	_update_poses()                           # ppos = pos at spawn
 
 ## Ground + spire tops under a course line.
 func _clearance(o: Vector3, ax: Vector3) -> float:
@@ -137,6 +138,8 @@ func pose(i: int, at: float) -> Array:
 func _update_poses() -> void:
 	for i in rings.size():
 		var ps := pose(i, t)
+		rings[i].ppos = rings[i].pos          # last step's pose: the crossing test needs both
+		rings[i].pnormal = rings[i].normal
 		rings[i].pos = ps[0]
 		rings[i].normal = ps[1]
 
@@ -164,18 +167,22 @@ func tick(dt: float, player_pos: Vector3, player_fwd: Vector3) -> String:
 		spawn(player_pos, player_fwd)            # you flew off: bring a course to you
 	return last_event
 
-## The flight from a to b went through the NEXT ring? (Only the next one counts.)
+## The flight from a (last step) to b (now) went through the NEXT ring? Only the next one
+## counts. The ring moves too, so a is measured against the ring's LAST pose and b against
+## its current one (testing both against the current pose missed passes: the plane slid
+## past a jet that had stopped 0.1 m short of it).
 func crossed(a: Vector3, b: Vector3) -> bool:
 	if not active() or next >= rings.size():
 		return false
 	var r: Dictionary = rings[next]
-	var n: Vector3 = r.normal
-	var da: float = (a - r.pos).dot(n)
-	var db: float = (b - r.pos).dot(n)
+	var p0: Vector3 = r.get("ppos", r.pos)
+	var n0: Vector3 = r.get("pnormal", r.normal)
+	var da: float = (a - p0).dot(n0)
+	var db: float = (b - r.pos).dot(r.normal)
 	if da * db > 0.0:
 		return false
 	var k := da / (da - db) if absf(da - db) > 0.0001 else 0.0
-	return a.lerp(b, k).distance_to(r.pos) < RING_RADIUS
+	return a.lerp(b, k).distance_to(p0.lerp(r.pos, k)) < RING_RADIUS
 
 ## Mark the next ring passed. Returns true when that finished the course.
 func pass_ring() -> bool:

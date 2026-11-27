@@ -90,6 +90,7 @@ static func bake_all() -> void:
 	spr["volcano"] = DfSprites.bake_art("volcano", _volcano_model(), 1, [2, 12, 25, 45, 75], 6.0)
 	spr["ship"] = DfSprites.bake_art("ship", _ship_model(), 16, [8, 25, 50, 80], 2.0)
 	spr["hoop"] = DfSprites.bake_art("hoop", _hoop_model(), 16, [-30, 0, 20, 45, 75], 2.0)
+	spr["ring"] = DfSprites.bake("ring_thin", _ring_model(), 16, [-60, -30, 0, 20, 45, 75], 2.0)
 	for k in 3:
 		cloud_tex.append(ImageTexture.create_from_image(_cloud_image(k)))
 	for kind in BLAST_PATHS:
@@ -996,7 +997,7 @@ func _draw_units() -> void:
 				var is_next: bool = i == rg.next
 				var mod := Color(1.4, 1.25, 0.7) if is_next else Color(1.0, 0.95, 0.9, 0.6)
 				mod = mod * (1.0 + 0.15 * sin(_t * 6.0 + i))
-				_queue_sprite(list, spr.hoop, r.pos, 0.0, DfRings.RING_SCALE, 0.0, mod, att)
+				_queue_sprite(list, spr.ring, r.pos, 0.0, DfRings.RING_SCALE, 0.0, mod, att)
 			var rp := project(r.pos)
 			if rp.z > 0.5 and rp.z < light_end:
 				list.append([rp.z - 0.5, "twinkle", r, rp, i == rg.next])
@@ -1619,6 +1620,18 @@ static func _ship_model() -> Dictionary:
 		v[Vector3i(0, y, 6)] = DfPal.HULL
 	v[Vector3i(1, 5, 6)] = DfPal.FLAG
 	v[Vector3i(2, 5, 6)] = DfPal.FLAG
+	return v
+
+## Ring courses (T: "skinnier and larger"): a thin ring, outer radius 14 px, band ~1.4 px,
+## hot yellow on top, orange below, with 4 white studs at the quarters (they read at range).
+static func _ring_model() -> Dictionary:
+	var v := {}
+	for y in range(-15, 16):
+		for x in range(-15, 16):
+			var e := Vector2(x, y).length()
+			if e > 12.6 and e < 14.1:
+				var stud := (absi(x) <= 0 or absi(y) <= 0) and e > 13.0
+				v[Vector3i(x, y, 0)] = Color.WHITE if stud else (DfPal.HOOP_HOT if y < 0 else DfPal.HOOP)
 	return v
 
 static func _hoop_model() -> Dictionary:

@@ -799,5 +799,35 @@ func _ready() -> void:
 	check(df.chain_preview.is_empty(), "a normal laser shows no chain")
 	df.stop()
 
+	# ---------------- slice 16o: skinny, larger rings that launch you to the next one
+	check(DfRings.RING_RADIUS >= 40.0, "rings are larger (hit radius %.0f m)" % DfRings.RING_RADIUS)
+	df.autopilot = false
+	df.start(91)
+	df.set_process(false)
+	df.state = "wave"
+	df.enemies.clear()
+	df.rings.spawn(df.player.position - df.player.forward() * 600.0, df.player.forward(), "slalom")
+	var lr0: Dictionary = df.rings.rings[0]
+	df.player.position = lr0.pos - lr0.normal * 30.0
+	df.player._set_yp(atan2(-lr0.normal.x, -lr0.normal.z), 0.0)
+	df.player.vel = df.player.forward() * 150.0
+	df.player.speed = 150.0
+	var lsteps := 0
+	while df.rings.next == 0 and lsteps < 60:
+		df.sim_step(1.0 / 30.0)
+		lsteps += 1
+	check(df.rings.next == 1 and df.player.launch_t > 0.0, "a ring pass launches the jet")
+	for k in 9:
+		df.sim_step(1.0 / 30.0)
+	var to_next: Vector3 = (df.rings.rings[1].pos - df.player.position).normalized()
+	check(df.player.forward().angle_to(to_next) < deg_to_rad(18.0), "after 0.3 s the nose points at the next ring (%.0f deg off)" % rad_to_deg(df.player.forward().angle_to(to_next)))
+	check(df.player.speed >= 200.0, "launch speed (%.0f m/s)" % df.player.speed)
+	var lst := 0
+	while df.rings.next == 1 and lst < 45:
+		df.sim_step(1.0 / 30.0)
+		lst += 1
+	check(df.rings.next == 2, "the launch carries you through the next ring (%.1f s)" % (lst / 30.0))
+	df.stop()
+
 	print("DOGFIGHT TESTS: %d passed, %d failed" % [passes, fails])
 	get_tree().quit(1 if fails > 0 else 0)

@@ -472,6 +472,7 @@ func _player_step(dt: float) -> void:
 		for k in 8:                  # gold flecks fly out of the ring (one big puff this close to the camera drew a box)
 			var off := Vector3(rng.randf_range(-1, 1), rng.randf_range(-1, 1), rng.randf_range(-1, 1)).normalized() * rng.randf_range(4.0, 10.0)
 			fx.puff(player.position + player.forward() * 10.0 + off, Color("ffd23f") if k % 2 else Color.WHITE, 0.5, 0.1, 0.4, player.vel + off * 6.0, 0.0, 5.0)
+		_ring_launch(done)
 		if done:
 			_supercharge()
 		else:
@@ -1374,6 +1375,20 @@ func laser_point(b: Dictionary, u: float) -> Vector3:
 	var p2 := p3 + (p0 - p3) * 0.25 + Vector3.UP * 45.0 - side * 30.0 * float(b.curl)
 	var v := 1.0 - u
 	return p0 * v * v * v + p1 * 3.0 * v * v * u + p2 * 3.0 * v * u * u + p3 * u * u * u
+
+## Ring launch: aim at where the next ring will be when you get there, and throw the jet
+## at it (DfPlane.launch: straight line, >= 210 m/s, the nose swings onto it). The last
+## ring throws you straight ahead.
+func _ring_launch(done: bool) -> void:
+	if done or rings.next >= rings.rings.size():
+		player.launch(player.forward(), 0.3, 230.0)
+		return
+	var p: Vector3 = rings.rings[rings.next].pos
+	for k in 3:                      # lead: predict the ring at arrival (3 passes converge)
+		var tt: float = player.position.distance_to(p) / 210.0
+		p = rings.pose(rings.next, rings.t + tt)[0]
+	player.launch(p - player.position, 0.55, 210.0)
+	Sfx.play("drift_boost", -6.0, 0.05)
 
 # ---------------------------------------------------------------- cyan laser
 func _supercharge() -> void:

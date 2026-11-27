@@ -328,3 +328,10 @@ T: "Change the rings to be bigger and twinkle and push around a scripted path. M
 - Demo: `--dfdemo=rings` or `rings_slalom|corkscrew|loop|stairs`. Scripted pilot clears each course in 8.6-13.4 s.
 - Tests: dogfight 184 (4 variations move + stay clear of the ground, in-order passes, reset, chain KOs 4 lined-up jets with 4 strikes and skips one out of range).
 - Fixed while recording: ring paths first moved ~50 m/s sideways (even the scripted pilot missed); a course could be built through a sea stack or above the 300 m ceiling; the ring-pickup puff (also on the old hoops) drew a big square box right in front of the camera; the supercharge blast filled the screen. Now gold / cyan flecks with a 5 px cap.
+
+## Slice 16o: skinny, larger rings that launch you (2026-11-26)
+T: "The loops should be skinnier and larger and launch you to the next one and change your yaw".
+- New thin ring sprite (`_ring_model`: radius 14 px, ~1.4 px band, white studs at the quarters), x1.5 → 42 m; hit radius 29 → 42 m; ring spacing 95 → 110 m.
+- `DfPlane.launch(dir, time, min_speed)`: for 0.55 s the jet flies straight at the next ring's predicted position (lead solved in 3 passes) at ≥ 210 m/s while its nose (yaw + pitch) swings onto the line (slerp 14/s). The last ring throws you straight ahead (0.3 s, 230 m/s). Steering still applies on top.
+- Bug found by the new test: the crossing test used the ring's current pose for both ends of the step, so a ring that slid/tilted could pass a jet sitting 0.1 m short of its plane. Now the last position is tested against the ring's last pose (`ppos`, `pnormal`).
+- Measured: after ring 1, a launch alone carries you through rings 2-5 on all 4 courses (0.1-4 m from ring centres). Tests: dogfight 189.
