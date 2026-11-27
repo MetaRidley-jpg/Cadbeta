@@ -31,21 +31,17 @@ Read this first. Then `docs/build-log.md` (what was built, slice by slice) and `
 - `tools/` — art generators, carver (`carve_all.sh`, `ONLY=<name>`), vector import (`import_vector.py`), redraw kit (`tools/redraw/`), `record_demo.sh`, `setup_godot.sh`.
 
 ## Set up a new machine
-`bash tools/setup_godot.sh` — installs Godot 4.7.2 + web templates + xvfb / rsvg / ffmpeg / Pillow, then imports. In a Claude Code cloud session it runs by itself (SessionStart hook in `.claude/settings.json`). If `godot` is not found after it ran, use `~/godot/godot` or `export PATH="$HOME/.local/bin:$PATH"`.
+`bash tools/setup_godot.sh` — installs Godot 4.7.2 + web templates + xvfb / rsvg / ffmpeg / Pillow, then imports. In a Claude Code cloud session it runs by itself (SessionStart hook in `.claude/settings.json`), without the web templates (~1 GB; only a local web export needs them). If `godot` is not found after it ran, use `~/godot/godot` or `export PATH="$HOME/.local/bin:$PATH"`.
 
 ## Tests (run before every push)
-All are headless. A pass prints `N passed, 0 failed` (ui_smoke: `ALL PASSED`). cards_test prints one harmless "Drawing is only allowed inside _draw" error: the test times `_draw_room()` directly.
-```
-godot --headless --path . res://tests/test_runner.tscn --quit-after 30000 -- --fresh     # rules, 366
-godot --headless --path . res://tests/dogfight_test.tscn --quit-after 20000 -- --fresh   # dogfight, 197
-godot --headless --path . res://tests/touch_test.tscn --quit-after 6000 -- --fresh       # phone touch, 25
-godot --headless --path . res://tests/ui_smoke.tscn --quit-after 8000 -- --fresh       # prints "UI SMOKE: ALL PASSED"
-godot --headless --path . res://tests/cards_test.tscn --quit-after 8000 -- --fresh       # 57
-godot --headless --path . res://tests/pool_test.tscn --quit-after 8000 -- --fresh        # 19
-godot --headless --path . res://tests/challenges_test.tscn --quit-after 8000 -- --fresh  # 116
-godot --headless --path . res://tests/holdem_test.tscn --quit-after 8000 -- --fresh      # 54
-```
-`tests/holdem_stress.tscn` is optional and slow. CI gate (`.github/workflows/web.yml`): rules + dogfight + touch.
+**One command: `bash tools/run_tests.sh`** — runs all 8 suites in parallel (~20 s), prints a PASS/FAIL table, exits 1 on any failure. Logs: `build/test-logs/<name>.log`. Pick suites: `bash tools/run_tests.sh rules df`. CI gate only: `CI=1 bash tools/run_tests.sh`. Timings: `SERIAL=1`. A broken suite is killed after 120 s.
+
+Suites (name: scene, about how many checks). A pass prints `N passed, 0 failed` (ui: `ALL PASSED`).
+`rules` test_runner 366 · `df` dogfight_test 197 · `touch` touch_test 25 · `ui` ui_smoke · `cards` cards_test 57 · `pool` pool_test 19 · `chal` challenges_test 116 · `holdem` holdem_test 53-55 (random hands gate some checks, so the count moves).
+- To add a suite: add one line to `SUITES` in `tools/run_tests.sh`.
+- cards_test prints one harmless "Drawing is only allowed inside _draw" error: the test times `_draw_room()` directly.
+- One suite by hand: `godot --headless --path . res://tests/<scene>.tscn --quit-after 30000 -- --fresh`.
+- `tests/holdem_stress.tscn` is optional and slow. CI gate (`.github/workflows/web.yml`): `CI=1 bash tools/run_tests.sh` (rules + df + touch).
 
 ## Record screenshots / video
 ```

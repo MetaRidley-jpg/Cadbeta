@@ -54,8 +54,11 @@ command -v ffmpeg >/dev/null 2>&1 || need="$need ffmpeg"
 if [ -n "$need" ]; then
   SUDO=""; [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1 && SUDO="sudo"
   log "apt install:$need"
-  ($SUDO apt-get update -qq && $SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y -qq $need libgl1 libgl1-mesa-dri >/dev/null) \
-    || log "WARN: apt failed; tests still run headless, but no recordings / vector import"
+  # try without "apt-get update" first: in cloud sessions one bad mirror makes update fail
+  # while the cached package lists still install fine
+  inst() { $SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y -qq $need libgl1 libgl1-mesa-dri >/dev/null 2>&1; }
+  inst || { $SUDO apt-get update -qq >/dev/null 2>&1; inst; } \
+    || log "WARN: apt failed ($need); tests still run headless, but no recordings / vector import"
 fi
 python3 -c "import PIL" 2>/dev/null || pip install -q --break-system-packages Pillow 2>/dev/null || pip install -q Pillow || log "WARN: Pillow missing"
 
@@ -65,5 +68,5 @@ if [ ! -d .godot ]; then
   log "first import ..."
   godot --headless --path . --import >/dev/null 2>&1 || true
 fi
-log "done. Smoke test: godot --headless --path . res://tests/test_runner.tscn --quit-after 30000 -- --fresh"
+log "done. All tests: bash tools/run_tests.sh"
 exit 0

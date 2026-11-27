@@ -337,3 +337,14 @@ T: "Wrap up and make loops appear in replays then we migrate on mobile to Claude
 
 ## Next
 See `docs/todo.md`: T's phone retest (poker, pool, replays, aim); T's first vector redraw; then the 16 ms dogfight draw cost (the card room fix shows the likely cure: batch the per-sprite draws).
+
+## Slice 16r: dev tooling for future work (2026-11-27)
+T: "Optimize cadbeta for future work".
+- `tools/run_tests.sh`: one command runs all 8 suites in parallel (~18 s vs ~74 s one by one), prints a PASS/FAIL table, exits 1 on failure, logs to `build/test-logs/`. Checked that a parse error makes it FAIL (exit 1). 120 s cap per suite.
+- CI test step now calls `CI=1 bash tools/run_tests.sh` (one list of suites, no drift between CI and local).
+- `setup_godot.sh`: apt now tries `install` before `update` (in the cloud box `apt-get update` failed, so librsvg / recording tools were silently missing).
+- SessionStart hook skips the ~1 GB web-template download (`SKIP_TEMPLATES=1`).
+- Removed a committed `tools/__pycache__/*.pyc`; `__pycache__/` and `*.pyc` ignored.
+- Found: the hold'em suite count moves (53-55) because random hands gate some checks. Docs said a fixed 54.
+- Tests: all 8 suites pass (rules 366, df 197, touch 25, ui, cards 57, pool 19, chal 116, holdem 55).
+

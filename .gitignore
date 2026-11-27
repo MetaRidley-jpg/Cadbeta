@@ -2,3 +2,5 @@
 build/
 tools/demos/
 tools/redraw/backup/
+__pycache__/
+*.pyc

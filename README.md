@@ -66,6 +66,7 @@
   Ids: broth, xylo, crusher, dogpark, foundry, carwash, merch, refinery, bank, reactor.
 
 ## Tests (run from this folder)
+All suites at once (parallel, ~20 s, PASS/FAIL table): `bash tools/run_tests.sh`. One by one:
 ```
 godot --headless --path . res://tests/test_runner.tscn -- --fresh   # 366 rule tests + pacing bot + 5-run Fold bot
 godot --headless --path . res://tests/ui_smoke.tscn -- --fresh      # presses every button, plays full pool matches
@@ -344,3 +345,9 @@ T: "Wrap up and make loops appear in replays then we migrate on mobile to Claude
 - Replays record the ring course every frame (`DfRings.snapshot()`: kind, origin, axis, course clock, next, passed flags) and rebuild it on playback (`restore()`, course clock interpolated between frames), so rings show where they were, moving, the next one gold. The live course comes back after the replay. Before: replays drew the live course frozen at replay start (missing if it had been cleared, wrong place if it had moved).
 - Demo `--dfdemo=ringsreplay[_<kind>]`: a replay right after ring 4. The `rings` demo now allows KO replays, spawns 4 jets, and its pilot holds altitude after the chain (it flew into an island).
 - Tests: dogfight 197 (the recorded course plays back, at the recorded place, moving; the live course returns).
+
+## Slice 16r: dev tooling for future work (2026-11-27)
+T: "Optimize cadbeta for future work".
+- `bash tools/run_tests.sh`: all 8 suites in parallel (~18 s), PASS/FAIL table, exit 1 on failure, logs in `build/test-logs/`. CI calls the same script (`CI=1`).
+- Setup: apt fallback fixed (recording tools were silently missing in the cloud box); the session hook skips the ~1 GB web-template download.
+- Removed a committed `.pyc`. Tests: all 8 suites pass.
