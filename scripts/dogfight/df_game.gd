@@ -469,7 +469,9 @@ func _player_step(dt: float) -> void:
 		player.speed += 25.0
 		score += 50.0
 		Sfx.play("hoop", -4.0, 0.0)
-		fx.puff(player.position + player.forward() * 8.0, Color("ffd23f"), 3.0, 10.0, 0.3)
+		for k in 8:                  # gold flecks fly out of the ring (one big puff this close to the camera drew a box)
+			var off := Vector3(rng.randf_range(-1, 1), rng.randf_range(-1, 1), rng.randf_range(-1, 1)).normalized() * rng.randf_range(4.0, 10.0)
+			fx.puff(player.position + player.forward() * 10.0 + off, Color("ffd23f") if k % 2 else Color.WHITE, 0.5, 0.1, 0.4, player.vel + off * 6.0, 0.0, 5.0)
 		if done:
 			_supercharge()
 		else:
@@ -1382,7 +1384,7 @@ func _supercharge() -> void:
 	Sfx.play("power_up", 0.0, 0.0)
 	for k in 10:                     # a crackle of cyan flecks around the jet (a blast this close filled the screen)
 		var off := Vector3(rng.randf_range(-1, 1), rng.randf_range(-0.4, 0.8), rng.randf_range(-1, 1)).normalized() * rng.randf_range(6.0, 14.0)
-		fx.puff(player.position + off, CYAN if k % 3 else Color.WHITE, 1.2, 0.2, 0.45, player.vel + off * 5.0)
+		fx.puff(player.position + off, CYAN if k % 3 else Color(0.8, 1.0, 1.0), 0.5, 0.1, 0.45, player.vel + off * 5.0, 0.0, 5.0)
 	Game.say.emit("df_supercharge", 2)
 
 func _target_key(t: Variant) -> Variant:

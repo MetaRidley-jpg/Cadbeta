@@ -327,3 +327,4 @@ T: "Change the rings to be bigger and twinkle and push around a scripted path. M
 - HUD: "RINGS n/5 · Ns" (red under 6 s), gold marker / edge arrow on the next ring. Sounds: zap, thunder, power_up (tools/make_sfx.py). Dialogue: df_supercharge (+ caveman). Replays record the zaps.
 - Demo: `--dfdemo=rings` or `rings_slalom|corkscrew|loop|stairs`. Scripted pilot clears each course in 8.6-13.4 s.
 - Tests: dogfight 184 (4 variations move + stay clear of the ground, in-order passes, reset, chain KOs 4 lined-up jets with 4 strikes and skips one out of range).
+- Fixed while recording: ring paths first moved ~50 m/s sideways (even the scripted pilot missed); a course could be built through a sea stack or above the 300 m ceiling; the ring-pickup puff (also on the old hoops) drew a big square box right in front of the camera; the supercharge blast filled the screen. Now gold / cyan flecks with a 5 px cap.
