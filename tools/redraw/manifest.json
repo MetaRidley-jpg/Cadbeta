@@ -1,0 +1,892 @@
+{
+ "stacks": {
+  "jet_player": {
+   "section": "DOGFIGHT",
+   "role": "Your jet (your concept sheet)",
+   "slices": 12,
+   "sheet_size": [
+    1256,
+    368
+   ],
+   "views_px": {
+    "TOP": [
+     31,
+     32
+    ],
+    "SIDE": [
+     34,
+     12
+    ],
+    "FRONT": [
+     31,
+     12
+    ],
+    "BACK": [
+     31,
+     12
+    ]
+   },
+   "boxes_sheet": [
+    [
+     48,
+     64,
+     296,
+     320
+    ],
+    [
+     344,
+     136,
+     616,
+     232
+    ],
+    [
+     664,
+     136,
+     912,
+     232
+    ],
+    [
+     960,
+     136,
+     1208,
+     232
+    ]
+   ]
+  },
+  "jet_fighter": {
+   "section": "DOGFIGHT",
+   "role": "Enemy fighter",
+   "slices": 9,
+   "sheet_size": [
+    1064,
+    320
+   ],
+   "views_px": {
+    "TOP": [
+     25,
+     28
+    ],
+    "SIDE": [
+     28,
+     9
+    ],
+    "FRONT": [
+     25,
+     9
+    ],
+    "BACK": [
+     25,
+     9
+    ]
+   },
+   "boxes_sheet": [
+    [
+     48,
+     48,
+     248,
+     272
+    ],
+    [
+     296,
+     116,
+     520,
+     188
+    ],
+    [
+     568,
+     116,
+     768,
+     188
+    ],
+    [
+     816,
+     116,
+     1016,
+     188
+    ]
+   ]
+  },
+  "jet_crimson": {
+   "section": "DOGFIGHT",
+   "role": "Alt player jet (Challenges prize)",
+   "slices": 9,
+   "sheet_size": [
+    1128,
+    336
+   ],
+   "views_px": {
+    "TOP": [
+     27,
+     30
+    ],
+    "SIDE": [
+     30,
+     9
+    ],
+    "FRONT": [
+     27,
+     9
+    ],
+    "BACK": [
+     27,
+     9
+    ]
+   },
+   "boxes_sheet": [
+    [
+     48,
+     48,
+     264,
+     288
+    ],
+    [
+     312,
+     124,
+     552,
+     196
+    ],
+    [
+     600,
+     124,
+     816,
+     196
+    ],
+    [
+     864,
+     124,
+     1080,
+     196
+    ]
+   ]
+  },
+  "jet_ghost": {
+   "section": "DOGFIGHT",
+   "role": "Alt player jet (Challenges prize)",
+   "slices": 9,
+   "sheet_size": [
+    1128,
+    336
+   ],
+   "views_px": {
+    "TOP": [
+     27,
+     30
+    ],
+    "SIDE": [
+     30,
+     9
+    ],
+    "FRONT": [
+     27,
+     9
+    ],
+    "BACK": [
+     27,
+     9
+    ]
+   },
+   "boxes_sheet": [
+    [
+     48,
+     48,
+     264,
+     288
+    ],
+    [
+     312,
+     124,
+     552,
+     196
+    ],
+    [
+     600,
+     124,
+     816,
+     196
+    ],
+    [
+     864,
+     124,
+     1080,
+     196
+    ]
+   ]
+  },
+  "kamikaze": {
+   "section": "DOGFIGHT",
+   "role": "Kamikaze drone",
+   "slices": 9,
+   "sheet_size": [
+    760,
+    304
+   ],
+   "views_px": {
+    "TOP": [
+     13,
+     26
+    ],
+    "SIDE": [
+     26,
+     9
+    ],
+    "FRONT": [
+     13,
+     9
+    ],
+    "BACK": [
+     13,
+     9
+    ]
+   },
+   "boxes_sheet": [
+    [
+     48,
+     48,
+     152,
+     256
+    ],
+    [
+     200,
+     116,
+     408,
+     188
+    ],
+    [
+     456,
+     116,
+     560,
+     188
+    ],
+    [
+     608,
+     116,
+     712,
+     188
+    ]
+   ]
+  },
+  "ship": {
+   "section": "DOGFIGHT",
+   "role": "Flak / artillery ship (ocean)",
+   "slices": 13,
+   "sheet_size": [
+    928,
+    448
+   ],
+   "views_px": {
+    "TOP": [
+     13,
+     44
+    ],
+    "SIDE": [
+     44,
+     13
+    ],
+    "FRONT": [
+     13,
+     13
+    ],
+    "BACK": [
+     13,
+     13
+    ]
+   },
+   "boxes_sheet": [
+    [
+     56,
+     48,
+     160,
+     400
+    ],
+    [
+     208,
+     172,
+     560,
+     276
+    ],
+    [
+     616,
+     172,
+     720,
+     276
+    ],
+    [
+     776,
+     172,
+     880,
+     276
+    ]
+   ]
+  },
+  "gunship": {
+   "section": "DOGFIGHT",
+   "role": "QUAD GUNSHIP boss (wave 6)",
+   "slices": 23,
+   "sheet_size": [
+    1712,
+    464
+   ],
+   "views_px": {
+    "TOP": [
+     45,
+     44
+    ],
+    "SIDE": [
+     44,
+     23
+    ],
+    "FRONT": [
+     45,
+     23
+    ],
+    "BACK": [
+     45,
+     23
+    ]
+   },
+   "boxes_sheet": [
+    [
+     56,
+     64,
+     416,
+     416
+    ],
+    [
+     464,
+     144,
+     816,
+     328
+    ],
+    [
+     888,
+     144,
+     1248,
+     328
+    ],
+    [
+     1296,
+     144,
+     1656,
+     328
+    ]
+   ]
+  },
+  "palm": {
+   "section": "DOGFIGHT",
+   "role": "Beach palm (~22 m)",
+   "slices": 34,
+   "sheet_size": [
+    1232,
+    416
+   ],
+   "views_px": {
+    "TOP": [
+     25,
+     25
+    ],
+    "SIDE": [
+     25,
+     34
+    ],
+    "FRONT": [
+     25,
+     34
+    ],
+    "BACK": [
+     25,
+     34
+    ]
+   },
+   "boxes_sheet": [
+    [
+     96,
+     100,
+     296,
+     300
+    ],
+    [
+     376,
+     96,
+     576,
+     368
+    ],
+    [
+     688,
+     96,
+     888,
+     368
+    ],
+    [
+     936,
+     96,
+     1136,
+     368
+    ]
+   ]
+  },
+  "spire": {
+   "section": "DOGFIGHT",
+   "role": "Mossy sea stack / island spire",
+   "slices": 48,
+   "sheet_size": [
+    1200,
+    496
+   ],
+   "views_px": {
+    "TOP": [
+     20,
+     19
+    ],
+    "SIDE": [
+     19,
+     48
+    ],
+    "FRONT": [
+     20,
+     48
+    ],
+    "BACK": [
+     20,
+     48
+    ]
+   },
+   "boxes_sheet": [
+    [
+     96,
+     176,
+     256,
+     328
+    ],
+    [
+     376,
+     64,
+     528,
+     448
+    ],
+    [
+     672,
+     64,
+     832,
+     448
+    ],
+    [
+     944,
+     64,
+     1104,
+     448
+    ]
+   ]
+  },
+  "volcano": {
+   "section": "DOGFIGHT",
+   "role": "Volcano (erupts in some weather)",
+   "slices": 36,
+   "sheet_size": [
+    2288,
+    608
+   ],
+   "views_px": {
+    "TOP": [
+     64,
+     64
+    ],
+    "SIDE": [
+     64,
+     36
+    ],
+    "FRONT": [
+     64,
+     36
+    ],
+    "BACK": [
+     64,
+     36
+    ]
+   },
+   "boxes_sheet": [
+    [
+     48,
+     48,
+     560,
+     560
+    ],
+    [
+     608,
+     160,
+     1120,
+     448
+    ],
+    [
+     1168,
+     160,
+     1680,
+     448
+    ],
+    [
+     1728,
+     160,
+     2240,
+     448
+    ]
+   ]
+  },
+  "asteroid": {
+   "section": "DOGFIGHT",
+   "role": "Asteroid (wave 5 impact)",
+   "slices": 24,
+   "sheet_size": [
+    1008,
+    288
+   ],
+   "views_px": {
+    "TOP": [
+     24,
+     24
+    ],
+    "SIDE": [
+     24,
+     24
+    ],
+    "FRONT": [
+     24,
+     24
+    ],
+    "BACK": [
+     24,
+     24
+    ]
+   },
+   "boxes_sheet": [
+    [
+     48,
+     48,
+     240,
+     240
+    ],
+    [
+     288,
+     48,
+     480,
+     240
+    ],
+    [
+     528,
+     48,
+     720,
+     240
+    ],
+    [
+     768,
+     48,
+     960,
+     240
+    ]
+   ]
+  },
+  "hoop": {
+   "section": "DOGFIGHT",
+   "role": "Speed hoop",
+   "slices": 22,
+   "sheet_size": [
+    800,
+    272
+   ],
+   "views_px": {
+    "TOP": [
+     22,
+     4
+    ],
+    "SIDE": [
+     4,
+     22
+    ],
+    "FRONT": [
+     22,
+     21
+    ],
+    "BACK": [
+     22,
+     21
+    ]
+   },
+   "boxes_sheet": [
+    [
+     48,
+     120,
+     224,
+     152
+    ],
+    [
+     272,
+     48,
+     304,
+     224
+    ],
+    [
+     352,
+     48,
+     528,
+     216
+    ],
+    [
+     576,
+     48,
+     752,
+     216
+    ]
+   ]
+  },
+  "card_table": {
+   "section": "CARD ROOM",
+   "role": "Card table (blackjack + hold'em)",
+   "slices": 10,
+   "sheet_size": [
+    2512,
+    592
+   ],
+   "views_px": {
+    "TOP": [
+     74,
+     62
+    ],
+    "SIDE": [
+     62,
+     10
+    ],
+    "FRONT": [
+     74,
+     10
+    ],
+    "BACK": [
+     74,
+     10
+    ]
+   },
+   "boxes_sheet": [
+    [
+     48,
+     48,
+     640,
+     544
+    ],
+    [
+     688,
+     256,
+     1184,
+     336
+    ],
+    [
+     1232,
+     256,
+     1824,
+     336
+    ],
+    [
+     1872,
+     256,
+     2464,
+     336
+    ]
+   ]
+  },
+  "chair": {
+   "section": "CARD ROOM",
+   "role": "Seat chair (manager seats)",
+   "slices": 18,
+   "sheet_size": [
+    752,
+    240
+   ],
+   "views_px": {
+    "TOP": [
+     16,
+     15
+    ],
+    "SIDE": [
+     16,
+     18
+    ],
+    "FRONT": [
+     16,
+     18
+    ],
+    "BACK": [
+     16,
+     18
+    ]
+   },
+   "boxes_sheet": [
+    [
+     48,
+     56,
+     176,
+     176
+    ],
+    [
+     224,
+     48,
+     352,
+     192
+    ],
+    [
+     400,
+     48,
+     528,
+     192
+    ],
+    [
+     576,
+     48,
+     704,
+     192
+    ]
+   ]
+  }
+ },
+ "flats": {
+  "cadavire_dealer": {
+   "section": "CARD ROOM \u00b7 CHARACTERS",
+   "path": "art/table/chars/cadavire_dealer.png",
+   "size": [
+    128,
+    160
+   ],
+   "role": "Cadavire as dealer (dealer suit)"
+  },
+  "broth": {
+   "section": "CARD ROOM \u00b7 CHARACTERS",
+   "path": "art/table/chars/broth.png",
+   "size": [
+    128,
+    160
+   ],
+   "role": "Soup Ghoul (Bone Broth Stand)"
+  },
+  "xylo": {
+   "section": "CARD ROOM \u00b7 CHARACTERS",
+   "path": "art/table/chars/xylo.png",
+   "size": [
+    128,
+    160
+   ],
+   "role": "Tone-Deaf Lich (Haunted Xylophone Lessons)"
+  },
+  "dogpark": {
+   "section": "CARD ROOM \u00b7 CHARACTERS",
+   "path": "art/table/chars/dogpark.png",
+   "size": [
+    128,
+    160
+   ],
+   "role": "Very Good Boy (CPA) (Totally Legit Dog Park)"
+  },
+  "carwash": {
+   "section": "CARD ROOM \u00b7 CHARACTERS",
+   "path": "art/table/chars/carwash.png",
+   "size": [
+    128,
+    160
+   ],
+   "role": "Bubbles Moretti (Ossuary Car Wash)"
+  },
+  "crusher": {
+   "section": "CARD ROOM \u00b7 CHARACTERS",
+   "path": "art/table/chars/crusher.png",
+   "size": [
+    128,
+    160
+   ],
+   "role": "Hydraulic Hank (Calcium Crusher)"
+  },
+  "foundry": {
+   "section": "CARD ROOM \u00b7 CHARACTERS",
+   "path": "art/table/chars/foundry.png",
+   "size": [
+    128,
+    160
+   ],
+   "role": "Forge Mummy (Femur Foundry)"
+  },
+  "bank": {
+   "section": "CARD ROOM \u00b7 CHARACTERS",
+   "path": "art/table/chars/bank.png",
+   "size": [
+    128,
+    160
+   ],
+   "role": "The Accountant (Deceased) (Offshore Bone Bank)"
+  },
+  "merch": {
+   "section": "CARD ROOM \u00b7 CHARACTERS",
+   "path": "art/table/chars/merch.png",
+   "size": [
+    128,
+    160
+   ],
+   "role": "Influencer Wraith (Skele-Tees Merch Co.)"
+  },
+  "refinery": {
+   "section": "CARD ROOM \u00b7 CHARACTERS",
+   "path": "art/table/chars/refinery.png",
+   "size": [
+    128,
+    160
+   ],
+   "role": "Dr. Pith (Marrow Refinery)"
+  },
+  "reactor": {
+   "section": "CARD ROOM \u00b7 CHARACTERS",
+   "path": "art/table/chars/reactor.png",
+   "size": [
+    128,
+    160
+   ],
+   "role": "Chief Containment Ghoul (Ribcage Reactor)"
+  },
+  "felt": {
+   "section": "CARD ROOM \u00b7 TEXTURES",
+   "path": "art/table/felt.png",
+   "size": [
+    256,
+    208
+   ],
+   "role": "Blackjack felt (GREYSCALE: the game tints it)"
+  },
+  "felt_holdem": {
+   "section": "CARD ROOM \u00b7 TEXTURES",
+   "path": "art/table/felt_holdem.png",
+   "size": [
+    256,
+    208
+   ],
+   "role": "Hold'em felt (GREYSCALE: tinted)"
+  },
+  "explosion": {
+   "section": "FX",
+   "path": "art/fx/explosion.png",
+   "size": [
+    384,
+    48
+   ],
+   "role": "Explosion (8 frames, 48 px)"
+  },
+  "explosion_laser": {
+   "section": "FX",
+   "path": "art/fx/explosion_laser.png",
+   "size": [
+    384,
+    48
+   ],
+   "role": "Laser-kill explosion (red)"
+  },
+  "explosion_beam": {
+   "section": "FX",
+   "path": "art/fx/explosion_beam.png",
+   "size": [
+    384,
+    48
+   ],
+   "role": "Gunship beam explosion (blue)"
+  }
+ }
+}

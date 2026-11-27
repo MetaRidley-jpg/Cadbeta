@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Carve every 4-view sheet in tools/art_src/ into a slice strip in art/stacks/.
 # Uses the vendored sprite-stacking slicer (MIT, Daniel White): tools/sprite_stacking/.
-# Usage (from the project folder):  bash tools/carve_all.sh
+# Usage (from the project folder):  bash tools/carve_all.sh   (ONLY=<name> carves one asset)
 # Needs: python3 with Pillow + numpy  (pip install pillow numpy)
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -10,6 +10,7 @@ mkdir -p art/stacks tools/art_src/checks
 
 carve () {   # name  extra-flags...
   local name=$1; shift
+  if [ -n "${ONLY:-}" ] && [ "$ONLY" != "$name" ]; then return 0; fi   # ONLY=jet_player: one asset
   local src=tools/art_src/${name}_views.png
   # slice count = SIDE view native height (sheets are drawn at 8x, no view outlines)
   local slices

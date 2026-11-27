@@ -304,3 +304,9 @@ T: "The 8 ball charge meter is in the app swipe away spot so it doesn't work / T
 - **Random weather:** each wave rolls clear / rain / fog+thunder / eruption / night (no repeats in a row); title + Cadavire line follow it. The asteroid wave keeps the impact sky; demos keep the fixed order.
 - **Dogfight text:** yellow (#ffe14a) with black outline; messages hold 65% as long (min 0.45 s) and fade in 0.25 s.
 - Tests: dogfight 145, cards 57.
+
+## Slice 16l: master sprite sheet + vector import (2026-11-26)
+T: "Make a master sheet of sprites for me to redraw from front, I will provide vector illustrations but I still want you to adjust and put it in the game with pixel stacking and pixel art".
+- `tools/make_master_sheet.py` → `tools/redraw/`: `master_sprite_sheet.png` (14 stacks with all 4 views + native px sizes + slice counts, 16 flat sprites, code-drawn list), `templates/<name>.svg` (Illustrator/Figma: REFERENCE, GUIDES, LABELS, BACKGROUND, YOUR_ART layers; 8 units = 1 game px), `manifest.json`, `REDRAW_GUIDE.md`.
+- `tools/import_vector.py <name> <svg>`: drops helper layers, renders with rsvg-convert, 8x8 block → 1 px (dominant color, ≥ 50% coverage), writes the 4-view sheet (empty BACK = mirrored FRONT) and carves that one asset (`ONLY=<name> bash tools/carve_all.sh`); flats overwrite the game PNG. Backups in `tools/redraw/backup/` (git-ignored).
+- Verified: round trip (the current art pasted as YOUR_ART) gives a 100% identical stack for jet_player and gunship and an identical flat for broth; a rough vector jet imports, pixelates crisply and carves.
