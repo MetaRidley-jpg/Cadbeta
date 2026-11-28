@@ -430,4 +430,5 @@ T: "Pilot doom like reactions and he puts his glove on his ear when radio is com
 - ART SLOTS: `art/pilot/pilot_<state>_<hurt>.png` or `pilot_<state>.png` (states: idle, look_l, look_r, grin, ear, shock, ko). Missing = a 48 x 56 code placeholder (red helmet, white fins, green visor eyes).
 - `DfSheathMeter` (scripts/dogfight/df_sheath_meter.gd): T's katana (art/blade/blade.png) at 2x in a dark red sheath; the blade slides out with the laser charge, shimmers when ready, cyan tint when supercharged. Right side under the bars.
 - Tests: dogfight 319 (+14).
+- Demos (T: "Demos" / "And queen attacks"): `--dfdemo=pilot` (every pilot reaction + the katana drawing and shimmering), `--dfdemo=queen_attack` (slow head-on approach just above her beams: reverse-spin pellets, then the 3 sweeping slabs).
 

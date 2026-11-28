@@ -629,7 +629,7 @@ func sim_step(dt: float) -> void:
 	ast_glance_t = maxf(0.0, ast_glance_t - dt)
 	_shock_step(dt)
 	_debris_step(dt)
-	if state == "wave" and demo != "beach" and demo != "queen" and not (demo == "rings" and _demo_phase != "chain_done") and enemies.is_empty() and _ships_alive() == 0 and not weather.asteroid_active:
+	if state == "wave" and demo != "beach" and demo != "queen" and demo != "queen_attack" and demo != "pilot" and not (demo == "rings" and _demo_phase != "chain_done") and enemies.is_empty() and _ships_alive() == 0 and not weather.asteroid_active:
 		_on_wave_clear()
 	_hit_say_cd = maxf(0.0, _hit_say_cd - dt)
 	_low_say_cd = maxf(0.0, _low_say_cd - dt)
@@ -750,6 +750,27 @@ func start_demo(name: String) -> void:
 		return
 	if name == "koi":
 		_start_demo_koi()
+		return
+	if name == "pilot":                  # T's pilot reactions + the katana meter, one after another
+		demo = "pilot"
+		_demo_t = 0.0
+		_demo_phase = ""
+		enemies.clear()
+		state = "wave"
+		weather.set_preset("morning", true)
+		player.position = Vector3(-200, 160, 600)
+		player.yaw = 0.0
+		player.vel = player.forward() * player.speed
+		_update_camera(0.0)
+		return
+	if name == "queen_attack":           # slow head-on approach just above her beams: one full cycle
+		start_demo("queen")
+		demo = "queen_attack"
+		var mq: Vector3 = world.mound.pos
+		player.position = Vector3(mq.x, QUEEN_ALT + QUEEN_BOB + QUEEN_BEAM_H + 25.0, mq.z + 1250.0)
+		player.yaw = 0.0
+		player.vel = player.forward() * player.speed
+		_update_camera(0.0)
 		return
 	if name == "queen":                  # slice 16w: flybys above beam height, she hatches
 		demo = "queen"
@@ -1332,6 +1353,41 @@ func _demo_inputs(dt: float) -> void:
 			player.turn = 0.55
 			player.drift = _demo_t > ASTEROID_WARN + 2.0 and _demo_t < ASTEROID_WARN + 4.0
 			player.pitch_in = clampf((170.0 - player.position.y) * 0.02, -0.25, 0.25)
+		return
+	if demo == "pilot":
+		_demo_t += dt
+		player.turn = 0.0
+		player.pitch_in = 0.0
+		player.boost_in = false
+		laser_charge = clampf(fmod(_demo_t, 6.0) / 3.0, 0.0, 1.0)      # draw the blade, then 3 s ready
+		var steps := ["idle", "radio", "hit_r", "hit_l", "grin", "shock", "hurt1", "hurt2", "hurt3"]
+		var i := mini(int(_demo_t / 1.6), steps.size() - 1)
+		if steps[i] != _demo_phase:
+			_demo_phase = steps[i]
+			match _demo_phase:
+				"radio": Game.radio_say("Incoming from command. Glove to the ear.")
+				"hit_r": _pilot_hit_t = 1.4; _pilot_hit_side = 1.0
+				"hit_l": _pilot_hit_t = 1.4; _pilot_hit_side = -1.0
+				"grin": _pilot_kill_t = 1.4
+				"shock": _pilot_shock_t = 1.4
+				"hurt1": player.hp = 70.0
+				"hurt2": player.hp = 45.0
+				"hurt3": player.hp = 20.0
+		return
+	if demo == "queen_attack":
+		_demo_t += dt
+		player.boost_in = false
+		player.drift = false
+		player.speed_cap = 60.0 * K
+		if queen == null and not queen_done:
+			_queen_hatch()
+			queen_st.phase = "dormant"                      # skip the rise: she is up, then spots you
+			queen.position = Vector3(world.mound.pos.x, QUEEN_ALT, world.mound.pos.z)
+		var aimq: Vector3 = world.mound.pos
+		aimq.y = QUEEN_ALT + QUEEN_BOB + QUEEN_BEAM_H + 25.0
+		var stq := player.steer_to(aimq, 2.0)
+		player.turn = stq.x
+		player.pitch_in = stq.y
 		return
 	if demo == "queen":
 		_demo_t += dt

@@ -54,7 +54,7 @@ xvfb-run -a -s "-screen 0 1280x1400x24" godot --path . --rendering-method gl_com
 Frames come out 540x960. GIF: `bash tools/record_demo.sh NAME FRAMES ARGS` (prefix `xvfb-run -a`). A `.avi` output records sound too. Add `--phone` to get the phone layout on desktop.
 
 Useful ARGS:
-- Dogfight: `--dfyaw=DEG` (heading), `--dfat=x,y,z`. `--dogfight --dfwave=N --dfgod --dfdemo=NAME`. Demos: `kami loop roll half immelmann fog beach rings[_slalom|_corkscrew|_loop|_stairs|_figure8|_bigloop|_helix] ringsreplay[_kind] queen boss bossko asteroid koi volcano ko`. Also `--dfcrashat=7`, `--dfsim=3`, `--dfhold`, `--dforbit=165`. Demos keep the fixed weather order; real play rolls weather per wave.
+- Dogfight: `--dfyaw=DEG` (heading), `--dfat=x,y,z`. `--dogfight --dfwave=N --dfgod --dfdemo=NAME`. Demos: `kami loop roll half immelmann fog beach rings[_slalom|_corkscrew|_loop|_stairs|_figure8|_bigloop|_helix] ringsreplay[_kind] queen queen_attack pilot boss bossko asteroid koi volcano ko`. Also `--dfcrashat=7`, `--dfsim=3`, `--dfhold`, `--dforbit=165`. Demos keep the fixed weather order; real play rolls weather per wave.
 - HUD: `--dfhurt=hp,shield` (T's bar states).
 - UI: `--tab=N`, `--playopts`, `--fever`, `--marrow=N`, `--memlog` (MEM lines), `--phone`.
 - Cards: `--holdem --hebuy=5 --heauto --fast`, `--cards --bjauto`.
