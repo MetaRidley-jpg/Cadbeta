@@ -113,6 +113,10 @@ const BOOST_FOV := [70.0, 82.0, 90.0, 104.0]
 @onready var score_label: Label = %ScoreLabel
 @onready var hp_bar: ProgressBar = %HpBar
 @onready var boost_bar: ProgressBar = %BoostBar
+var status_bars: DfStatusBars      # T's 3-row HUD (shield / hull / boost); the old bars are hidden
+var _hull_ghost := 100.0
+var _ghost_hold := 0.0
+var _ghost_hp_seen := 100.0
 @onready var center_msg: Label = %CenterMsg
 @onready var sub_msg: Label = %SubMsg
 @onready var enemies_label: Label = %EnemiesLabel
@@ -212,6 +216,12 @@ func _ready() -> void:
 	render = DfRender.new()
 	viewport.add_child(render)
 	hud.draw.connect(_draw_hud)
+	var bars_box: Control = boost_bar.get_parent()
+	for ch in bars_box.get_children():
+		ch.visible = false
+	status_bars = DfStatusBars.new()
+	status_bars.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bars_box.add_child(status_bars)
 	quit_button.pressed.connect(_on_quit)
 	# cinematic letterbox bars (KO + replay), on top of everything
 	_lb_top = ColorRect.new()
@@ -282,6 +292,8 @@ func start(seed_value := -1) -> void:
 	fx = DfFx.new()
 	player = DfPlane.new()
 	player.setup("player", Vector3(0, 90, 900), 0.0)
+	_hull_ghost = player.hp
+	_ghost_hp_seen = player.hp
 	player.free = true                # full 360 flight
 	player.assist = Game.df_assist
 	_cam_up = Vector3.UP
@@ -2642,6 +2654,18 @@ func _update_hud(delta: float) -> void:
 	score_label.text = "%d" % int(score)
 	hp_bar.value = player.hp
 	boost_bar.value = player.boost
+	# T's bars: the hull ghost (grey) holds 0.5 s after a hit, then drains at 40/s
+	if player.hp > _hull_ghost:
+		_hull_ghost = player.hp
+	elif player.hp < _hull_ghost:
+		if _ghost_hp_seen > player.hp + 0.01:
+			_ghost_hold = 0.5
+		_ghost_hold -= real
+		if _ghost_hold <= 0.0:
+			_hull_ghost = maxf(player.hp, _hull_ghost - 40.0 * real)
+	_ghost_hp_seen = player.hp
+	if status_bars != null:
+		status_bars.set_values(player.shield / DfPlane.SHIELD_MAX, player.hp / player.max_hp, _hull_ghost / player.max_hp, player.boost / 100.0)
 	_msg_t -= real
 	center_msg.modulate.a = clampf(_msg_t / MSG_FADE, 0.0, 1.0)
 	sub_msg.modulate.a = 1.0 if sub_msg.text == "LOW FLYING!" else center_msg.modulate.a

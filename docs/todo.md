@@ -27,7 +27,7 @@ Order = what I do next, top first. **P0** blocks shipping or is T's direct ask. 
 5. ✅ **The 16 ms "draw cost"** (slice 16r): it was `sprites()` re-reading PNGs every frame, not drawing. Fixed + baked atlases. Detail: `docs/dogfight-performance.md`.
 5a. ✅ **Ring bounds, ground-safe launches, figure 8 / big loop / helix, boost hold** (slice 16s). T: phone-test the 3 new shapes and the boost feel (`BOOST_HOLD`, `COAST_DECEL` are the knobs).
 5d. **4x world** (`docs/world-4x.md`): ✅ 16t foundation. Next 16u highways, 16v alien hive, 16w Queen, 16x seed + portal + bonus stage. Needed soon: a minimap / zone name.
-5e. **T's HUD bars** (orange triangle / green dots / blue segmented): waiting for T's meaning of each bar.
+5e. ✅ **T's HUD bars** (Shield / Hull / Boost, new shield mechanic). T: check feel of SHIELD_MAX / SHIELD_DELAY.
 5b. **T: phone-test with `?prof`** (https://metaridley-jpg.github.io/Cadbeta/?prof). Send a screenshot of the readout in a busy wave and the boss.
 5c. **Koi draw** is now the top cost (peaks 13 ms on web). Needs T's call: lower detail at mid range, or a shader koi.
 6. ~~**Draw batching plan**~~ (not needed: draw calls were never the cost; koi batching measured slower) (only if 5 is not enough): move the sprite pass from per-item `draw_*` calls to one batched mesh (MultiMesh or one ArrayMesh per frame), or move sort + draw to GDExtension (C# does not export to the web in Godot 4).

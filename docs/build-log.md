@@ -373,3 +373,9 @@ T: "Ask me questions to 4x the map and make this just one quadrant" (answers + f
 - Fights follow you; scenery culled by a 500 m cell grid (4x objects, same cost); `ground_y` uses the grid.
 - Tests: dogfight 261.
 
+## Slice 16t+: T's HUD bars (2026-11-28)
+T: "Here's some ui I made!" (Figma sheet: orange triangle / green dots / blue down triangle; full, hurt, low states; swatch row). T confirmed: Shield / Hull / Boost.
+- `DfStatusBars` (scripts/dogfight/df_status_bars.gd) draws T's 3 rows in his swatch colours on a dark plate; the old HULL / BOOST bars are hidden (kept for code that reads them).
+- NEW shield (`DfPlane.SHIELD_MAX` 35, refills at 10/s after 4 s without a hit) takes hits first. Hull: green, red under 30%, grey ghost = damage just taken (holds 0.5 s, drains 40/s). Boost: 10 segments, blue with a chunky lighter centre band.
+- Flag `--dfhurt=hp,shield` for screenshots. Tests: dogfight 270 (+9).
+

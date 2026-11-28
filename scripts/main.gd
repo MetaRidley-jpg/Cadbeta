@@ -1160,6 +1160,15 @@ func _debug_setup() -> void:
 			df.player.pitch = -0.35
 			df.player.vel = df.player.forward() * df.player.speed
 			df._update_camera(0.0)
+		if args.has("dfhurt"):    # screenshots of T's HUD states: --dfhurt=hp,shield
+			var hv: PackedStringArray = String(args.dfhurt).split(",")
+			df.player.max_hp = 100.0      # --dfgod sets 1e9: the bar would read empty
+			df.player.hp = float(hv[0])
+			df.player.shield = float(hv[1]) if hv.size() > 1 else df.player.shield
+			df.player.shield_cd = 99.0
+			df._hull_ghost = minf(df.player.max_hp, df.player.hp + 25.0)   # show the grey "just hit" part
+			df._ghost_hold = 99.0
+			df._ghost_hp_seen = df.player.hp
 		if args.has("dfyaw"):     # heading in degrees (0 = north/-z, 90 = west): wall / zone shots
 			df.player.yaw = deg_to_rad(float(args.dfyaw))
 			df.player.vel = df.player.forward() * df.player.speed

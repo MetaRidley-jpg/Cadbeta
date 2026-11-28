@@ -1097,5 +1097,35 @@ func _ready() -> void:
 	check(fy_ok, "enemies spawn near you, even in the far quadrant")
 	df.stop()
 
+	# ---------------- T's HUD: shield / hull / boost
+	var sh := DfPlane.new()
+	sh.setup("player", Vector3(0, 300, 0), 0.0)
+	check(sh.shield == DfPlane.SHIELD_MAX, "the shield starts full")
+	sh.damage(20.0)
+	check(sh.hp == sh.max_hp and absf(sh.shield - (DfPlane.SHIELD_MAX - 20.0)) < 0.01, "a hit drains the shield first (hull untouched)")
+	sh.damage(30.0)
+	check(sh.shield == 0.0 and absf(sh.hp - (sh.max_hp - (30.0 - (DfPlane.SHIELD_MAX - 20.0)))) < 0.01, "the rest of the hit goes to the hull (%.0f)" % sh.hp)
+	for k in 90:                      # 3 s: still inside the delay
+		sh.step(1.0 / 30.0)
+	check(sh.shield == 0.0, "no refill during the delay")
+	for k in 150:                     # +5 s
+		sh.step(1.0 / 30.0)
+	check(sh.shield > DfPlane.SHIELD_MAX * 0.9, "then the shield refills (%.0f)" % sh.shield)
+	var fe := DfPlane.new()
+	fe.setup("fighter", Vector3.ZERO, 0.0)
+	fe.damage(10.0)
+	check(fe.hp == fe.max_hp - 10.0, "enemies have no shield")
+	df.start(4)
+	df.set_process(false)
+	check(df.status_bars != null and df.status_bars.is_inside_tree() and not df.hp_bar.visible, "T's 3-row bars replace the old HULL / BOOST bars")
+	df.player.shield = 0.0
+	df.player.damage(30.0)
+	df._update_hud(1.0 / 30.0)
+	check(df.status_bars.ghost > df.status_bars.hull + 0.2, "the grey ghost shows the damage just taken")
+	for k in 90:
+		df._update_hud(1.0 / 30.0)
+	check(absf(df.status_bars.ghost - df.status_bars.hull) < 0.01, "then the ghost drains to the hull")
+	df.stop()
+
 	print("DOGFIGHT TESTS: %d passed, %d failed" % [passes, fails])
 	get_tree().quit(1 if fails > 0 else 0)

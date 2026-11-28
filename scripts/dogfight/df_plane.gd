@@ -116,6 +116,8 @@ func setup(k: String, pos: Vector3, heading: float) -> void:
 	speed = d.speed
 	hp = d.hp
 	max_hp = d.hp
+	shield = SHIELD_MAX if k == "player" else 0.0
+	shield_cd = 0.0
 	radius = d.radius
 	yaw = heading
 	position = pos
@@ -202,6 +204,10 @@ func step(dt: float) -> void:
 			pt = move_toward(pt, 0.0, 0.35 * dt)   # gentle auto-level
 		_set_yp(y, pt)
 	boosting = boost_in and boost > 0.0 and kind == "player"
+	if kind == "player":
+		shield_cd -= dt
+		if shield_cd <= 0.0:
+			shield = minf(SHIELD_MAX, shield + SHIELD_REGEN * dt)
 	# drift charge + release
 	if kind == "player":
 		if drift:
@@ -315,9 +321,22 @@ func boost_stage() -> int:
 		return 2
 	return 1
 
+## T's HUD (slice 16t+): the player has a SHIELD that takes hits first and refills after
+## SHIELD_DELAY s without a hit. Enemies have none.
+const SHIELD_MAX := 35.0
+const SHIELD_DELAY := 4.0
+const SHIELD_REGEN := 10.0      # per s
+var shield := 0.0
+var shield_cd := 0.0
+
 func damage(v: float) -> bool:
 	if not alive:
 		return false
+	if kind == "player" and v > 0.0:
+		shield_cd = SHIELD_DELAY
+		var soak := minf(shield, v)
+		shield -= soak
+		v -= soak
 	hp -= v
 	if hp <= 0.0:
 		hp = 0.0
