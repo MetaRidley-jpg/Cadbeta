@@ -1323,5 +1323,33 @@ func _ready() -> void:
 	check(q_skin > 0, "hive kamikazes are alien (%d)" % q_skin)
 	df.stop()
 
+	# ---------------- T's mute pilot + katana laser meter
+	df.start(61)
+	df.set_process(false)
+	df.state = "wave"
+	check(df.pilot_state().state == "idle" and df.pilot_state().hurt == 0, "pilot: idle and unhurt at the start")
+	Game.radio_say("test line")
+	check(df.pilot_state().state == "ear", "pilot: glove to his ear when the radio comes in")
+	df._pilot_ear_t = 0.0
+	df.player.shield = 0.0
+	df._hit_player(5.0, false, df.player.position + df.player.right() * 50.0)
+	check(df.pilot_state().state == "look_r", "pilot: looks toward a hit from the right")
+	df._pilot_hit_t = 0.0
+	df._takedown("KO!", 0.0)
+	check(df.pilot_state().state == "grin", "pilot: grins on a kill")
+	df._pilot_kill_t = 0.0
+	df.player.hp = 20.0
+	check(df.pilot_state().hurt == 3, "pilot: badly hurt face at low hull")
+	df.player.hp = df.player.max_hp
+	for pk in ["idle", "look_l", "grin", "ear", "shock", "ko"]:
+		var pim := DfPilotPortrait.placeholder(pk, 2)
+		check(pim.get_width() == DfPilotPortrait.W and pim.get_height() == DfPilotPortrait.H, "pilot placeholder %s builds" % pk)
+	check(main.pilot_portrait != null and not main.get_node("%Portrait").visible, "the pilot takes the portrait slot")
+	check(df.sheath_meter != null and df.sheath_meter.is_inside_tree(), "the katana laser meter is in the HUD")
+	df.laser_charge = 0.5
+	df._update_hud(1.0 / 30.0)
+	check(absf(df.sheath_meter.charge - 0.5) < 0.01 and not df.sheath_meter.lit, "the blade is half drawn at half charge")
+	df.stop()
+
 	print("DOGFIGHT TESTS: %d passed, %d failed" % [passes, fails])
 	get_tree().quit(1 if fails > 0 else 0)

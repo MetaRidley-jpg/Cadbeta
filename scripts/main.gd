@@ -35,6 +35,8 @@ var _last_page := 0
 var _challenge_wait := 0.0
 var _wardrobe_tints: VBoxContainer
 
+var pilot_portrait: DfPilotPortrait
+
 func _ready() -> void:
 	theme = ui.build()
 	%Bg.color = ui.pal.bg
@@ -83,6 +85,12 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_apply_safe_area)
 	_apply_safe_area()
 	%Portrait.visible = Game.cadavire_on           # disconnected, not deleted (T)
+	if not Game.cadavire_on:                        # T's mute pilot takes the slot
+		pilot_portrait = DfPilotPortrait.new()
+		pilot_portrait.name = "PilotPortrait"
+		pilot_portrait.custom_minimum_size = Vector2(150, 190)
+		pilot_portrait.game = %DogfightPage
+		%Portrait.add_sibling(pilot_portrait)
 	var fever_row := get_node_or_null("Root/Stage/HBox/StageRight/FeverRow") as Control
 	if fever_row:
 		fever_row.visible = Game.cadavire_on       # her Fever meter: off with her

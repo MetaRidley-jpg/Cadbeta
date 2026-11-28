@@ -27,6 +27,7 @@ Order = what I do next, top first. **P0** blocks shipping or is T's direct ask. 
 5. ✅ **The 16 ms "draw cost"** (slice 16r): it was `sprites()` re-reading PNGs every frame, not drawing. Fixed + baked atlases. Detail: `docs/dogfight-performance.md`.
 5a. ✅ **Ring bounds, ground-safe launches, figure 8 / big loop / helix, boost hold** (slice 16s). T: phone-test the 3 new shapes and the boost feel (`BOOST_HOLD`, `COAST_DECEL` are the knobs).
 5d. **4x world** (`docs/world-4x.md`): ✅ 16t foundation. Next 16u highways, 16v alien hive, 16w Queen, 16x seed + portal + bonus stage. Needed soon: a minimap / zone name.
+5i. ✅ **Pilot portrait + katana laser meter** (16y). T: draw pilot frames into `art/pilot/` (see build-log 16y for names). Next: zone 3 (floating islands + water hands + saucer).
 5h. **Pixel blade** done as a demo (`art/blade/blade.png`, `tools/blade/make_blade.py`, T: "It looks good"). Next: sheath laser meter + pilot portrait system (placeholder frames, T's PNG slots).
 5g. **T's new reference art** (`art/ref/`): pilot with katana + sheath bar = the player's mute pilot (Doom-like portrait reactions, glove to ear on radio) and the laser meter; hex panel = the plate on the sword's hilt (T), domed saucer ship = **zone 3** (T): on landing a flat stairway shoots down out of it (not a ladder).
 5f. ✅ **Cadavire disconnected** (`Game.cadavire_on`), app boots into the dogfight (`Game.dogfight_focus`), text box = RADIO.

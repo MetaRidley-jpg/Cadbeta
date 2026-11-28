@@ -377,3 +377,6 @@ T: "Ask me questions to 4x the map and make this just one quadrant".
 ## Slice 16w: the hive Queen (2026-11-28)
 - Destroy 6 hive units (or fly close to the hatch mound) and the Queen hatches: a spinning triangle with 3 mouths that sweep flat red-pink beams. Change height to dodge. Hive kamikazes are alien now.
 - The Queen's beams are massive 70 m slabs; while charging she spins the other way and flings spinning pellets; she wakes when she spots you. The BOMB button is now SPIN (barrel roll).
+
+## Slice 16y: pilot + katana meter (2026-11-28)
+- T's mute pilot sits beside the RADIO box with Doom-style reactions (glove to ear on radio, looks at hits, grins on kills, gets beaten up as the hull drops). The laser meter is T's katana sliding out of its sheath.

@@ -424,3 +424,10 @@ T: "She needs the beams, like big laser beams. 3 that don't lock on but have mas
 - SPIN touch button (purple) replaces BOMB: a tap = barrel roll toward your steering side. The bomb is disconnected from touch (keyboard B still works), not deleted.
 - Tests: dogfight 305.
 
+## Slice 16y: T's mute pilot + katana laser meter (2026-11-28)
+T: "Pilot doom like reactions and he puts his glove on his ear when radio is coming in. Mute player." / "Third area is floating islands and water hands that try to grab you and pull you in after those get goin" (zone 3 is next; noted in `docs/world-4x.md`).
+- `DfPilotPortrait` (scripts/dogfight/df_pilot.gd) takes Cadavire's slot. `DfGame.pilot_state()`: KO > glove to ear (any radio line, 2.4 s) > shock (shield broke) > look left/right (toward the hit side) > grin (kill) > idle; hurt 0-3 from the hull.
+- ART SLOTS: `art/pilot/pilot_<state>_<hurt>.png` or `pilot_<state>.png` (states: idle, look_l, look_r, grin, ear, shock, ko). Missing = a 48 x 56 code placeholder (red helmet, white fins, green visor eyes).
+- `DfSheathMeter` (scripts/dogfight/df_sheath_meter.gd): T's katana (art/blade/blade.png) at 2x in a dark red sheath; the blade slides out with the laser charge, shimmers when ready, cyan tint when supercharged. Right side under the bars.
+- Tests: dogfight 319 (+14).
+

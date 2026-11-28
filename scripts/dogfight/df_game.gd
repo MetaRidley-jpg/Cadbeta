@@ -126,6 +126,7 @@ const BOOST_FOV := [70.0, 82.0, 90.0, 104.0]
 @onready var score_label: Label = %ScoreLabel
 @onready var hp_bar: ProgressBar = %HpBar
 @onready var boost_bar: ProgressBar = %BoostBar
+var sheath_meter: DfSheathMeter    # T's katana laser meter (under the bars)
 var status_bars: DfStatusBars      # T's 3-row HUD (shield / hull / boost); the old bars are hidden
 var _hull_ghost := 100.0
 var _ghost_hold := 0.0
@@ -226,6 +227,7 @@ var debug_orbit := -1.0          # debug: look at the jet from this angle (rad, 
 var _wave_def := {}
 
 func _ready() -> void:
+	Game.radio.connect(_pilot_on_radio)
 	render = DfRender.new()
 	viewport.add_child(render)
 	hud.draw.connect(_draw_hud)
@@ -235,6 +237,8 @@ func _ready() -> void:
 	status_bars = DfStatusBars.new()
 	status_bars.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bars_box.add_child(status_bars)
+	sheath_meter = DfSheathMeter.new()               # T's katana = the laser meter
+	bars_box.add_sibling(sheath_meter)
 	quit_button.pressed.connect(_on_quit)
 	# cinematic letterbox bars (KO + replay), on top of everything
 	_lb_top = ColorRect.new()
@@ -321,6 +325,10 @@ func start(seed_value := -1) -> void:
 	queen = null
 	queen_done = false
 	hive_kills = 0
+	_pilot_hit_t = 0.0
+	_pilot_kill_t = 0.0
+	_pilot_ear_t = 0.0
+	_pilot_shock_t = 0.0
 	projectiles.clear()
 	wave = 0
 	waves_cleared = 0
@@ -389,6 +397,39 @@ func _process(delta: float) -> void:
 		_slowmo_until = 0
 
 var _radio_zone := -1
+# ---------------------------------------------------------------- T's mute pilot (portrait)
+var _pilot_hit_t := 0.0
+var _pilot_hit_side := 1.0
+var _pilot_kill_t := 0.0
+var _pilot_ear_t := 0.0
+var _pilot_shock_t := 0.0
+
+## What T's pilot portrait shows now (DfPilotPortrait). Priority: KO > radio (glove to ear) >
+## shield broke (shock) > hit (looks toward the hit) > kill (grin) > idle. hurt 0..3 = hull.
+func pilot_state() -> Dictionary:
+	var f := player.hp / maxf(1.0, player.max_hp) if player != null else 1.0
+	var hurt := 0 if f > 0.75 else (1 if f > 0.5 else (2 if f > 0.25 else 3))
+	var s := "idle"
+	if state == "crash" or state == "over":
+		s = "ko"
+	elif _pilot_ear_t > 0.0:
+		s = "ear"
+	elif _pilot_shock_t > 0.0:
+		s = "shock"
+	elif _pilot_hit_t > 0.0:
+		s = "look_l" if _pilot_hit_side < 0.0 else "look_r"
+	elif _pilot_kill_t > 0.0:
+		s = "grin"
+	return {"state": s, "hurt": hurt}
+
+func _pilot_tick(dt: float) -> void:
+	_pilot_hit_t = maxf(0.0, _pilot_hit_t - dt)
+	_pilot_kill_t = maxf(0.0, _pilot_kill_t - dt)
+	_pilot_ear_t = maxf(0.0, _pilot_ear_t - dt)
+	_pilot_shock_t = maxf(0.0, _pilot_shock_t - dt)
+
+func _pilot_on_radio(_text: String) -> void:
+	_pilot_ear_t = 2.4
 # ---------------------------------------------------------------- slice 16w: the hive QUEEN
 ## T: "Instead of volcano the queen hatches and shoots 3 rotating red pink lasers that sweep
 ## horizontally out of 3 mouths in a triangle spinning shape". She hatches from the mound
@@ -541,6 +582,7 @@ func _queen_down(e: DfPlane) -> void:
 var _radio_course := Vector3.INF
 func sim_step(dt: float) -> void:
 	sim_time += dt
+	_pilot_tick(dt)
 	if (demo == "" or demo == "queen") and state in ["wave", "break"] and queen == null and not queen_done:
 		if hive_kills >= QUEEN_TRIGGER_KILLS or Vector2(player.position.x - world.mound.pos.x, player.position.z - world.mound.pos.z).length() < QUEEN_TRIGGER_DIST:
 			_queen_hatch()
@@ -1929,6 +1971,7 @@ func _kill_enemy(e: DfPlane, how: String) -> void:
 			_show_msg("ASTEROID KO!", 1.2)
 
 func _takedown(text: String, bonus: float) -> void:
+	_pilot_kill_t = 0.9
 	takedowns += 1
 	score += bonus
 	_show_msg(text, 1.0)
@@ -2098,12 +2141,12 @@ func _projectiles_step(dt: float) -> void:
 							break
 			"enemy_bullet":
 				if state != "crash" and _seg_hit(a, b, player.position, player.radius):
-					_hit_player(pr.dmg)
+					_hit_player(pr.dmg, true, a)
 					gone = not player.rolling()      # a roll lets the bolt fly past
 			"pellet":                            # the Queen's spinning pellets (a roll dodges them too)
 				pr.spin = float(pr.get("spin", 0.0)) + 14.0 * dt
 				if state != "crash" and _seg_hit(a, b, player.position, player.radius + 2.0):
-					_hit_player(pr.dmg)
+					_hit_player(pr.dmg, true, a)
 					gone = not player.rolling()
 			"flak":
 				if pr.life <= 0.0:
@@ -2161,9 +2204,14 @@ func _hazards_step(dt: float) -> void:
 			projectiles.append({"p": p, "v": Vector3(rng.randf_range(-25, 25), -80.0, rng.randf_range(-25, 25)), "life": 20.0, "kind": "lava", "dmg": LAVA_DMG})
 
 ## dodge: bullets, flak and kamikazes miss you during a barrel roll (lava and the asteroid do not).
-func _hit_player(v: float, dodge := true) -> void:
+func _hit_player(v: float, dodge := true, from := Vector3.INF) -> void:
 	if state == "crash" or state == "over":
 		return
+	if not (dodge and player.rolling()):
+		_pilot_hit_t = 0.7
+		_pilot_hit_side = signf((from - player.position).dot(player.right())) if from != Vector3.INF else (1.0 if rng.randf() < 0.5 else -1.0)
+		if player.shield > 0.0 and player.shield <= v:
+			_pilot_shock_t = 0.7                     # the shield just broke
 	if dodge and player.rolling():
 		if dodge_t <= 0.0:
 			_show_msg("DODGE!", 0.5)
@@ -2982,6 +3030,8 @@ func _update_hud(delta: float) -> void:
 		if _ghost_hold <= 0.0:
 			_hull_ghost = maxf(player.hp, _hull_ghost - 40.0 * real)
 	_ghost_hp_seen = player.hp
+	if sheath_meter != null:
+		sheath_meter.set_values(laser_charge, laser_ready(), cyan_laser)
 	if status_bars != null:
 		status_bars.set_values(player.shield / DfPlane.SHIELD_MAX, player.hp / player.max_hp, _hull_ghost / player.max_hp, player.boost / 100.0)
 	_msg_t -= real
