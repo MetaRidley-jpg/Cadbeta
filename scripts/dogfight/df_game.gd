@@ -370,8 +370,15 @@ func _process(delta: float) -> void:
 		Engine.time_scale = 1.0
 		_slowmo_until = 0
 
+var _radio_zone := -1
 func sim_step(dt: float) -> void:
 	sim_time += dt
+	if demo == "" and state in ["wave", "break"]:       # radio: zone changes (T: the text box carries the dogfight)
+		var zn := DfWorld.zone_of(player.position)
+		if zn != _radio_zone:
+			if _radio_zone >= 0:
+				Game.radio_say("ENTERING %s." % DfWorld.ZONE_NAMES[zn])
+			_radio_zone = zn
 	if debug_crash_at > 0.0 and sim_time >= debug_crash_at and state == "wave":
 		debug_crash_at = -1.0
 		player.hp = 0.0
@@ -1495,6 +1502,8 @@ func _glide_wall(dt: float) -> void:
 
 # ---------------------------------------------------------------- cyan laser
 func _supercharge() -> void:
+	if demo == "":
+		Game.radio_say("COURSE CLEAR. Laser supercharged: cyan chain ready.")
 	cyan_laser = true
 	laser_charge = 1.0
 	score += 500.0
@@ -1966,6 +1975,8 @@ func _next_wave() -> void:
 		_spawn_ship()
 	state = "wave"
 	_show_msg(_wave_def.title, 2.5)
+	if demo == "":
+		Game.radio_say("%s. %s. %d hostiles." % [_wave_def.title, DfWorld.ZONE_NAMES[DfWorld.zone_of(player.position)], int(_wave_def.fighters) + int(_wave_def.kamikaze)])
 	if _wave_def.say != "":
 		Game.say.emit(_wave_def.say, 2)
 	if _wave_def.get("boss", false):

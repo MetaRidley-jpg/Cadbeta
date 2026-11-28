@@ -21,6 +21,9 @@ Read this first. Then `docs/build-log.md` (what was built, slice by slice) and `
 - Minigames: Pool (PvP / PvE), Dogfight (the big one), Blackjack + Texas Hold'em (Marrow wagers, card room), Pinball (not built).
 - Details: `docs/minigames.md`, `docs/managers-and-loyalty.md`, `docs/challenges.md`, `docs/holdem.md`, `docs/card-room.md`.
 
+## Current mode (T, 2026-11-28)
+- **Cadavire is disconnected** (`Game.cadavire_on = false`) and the app **boots into the dogfight** (`Game.dogfight_focus`). The text box is RADIO (`Game.radio_say`). Do not delete her code. `--tycoon` opens the old screens.
+
 ## Code map
 - `scripts/game.gd` — autoload `Game`: save, economy, `is_phone()`, wagers, settings.
 - `scripts/main.gd` — main UI, tabs, Play home (`_build_play`), debug command-line flags (`args.has(...)`), touch-scroll fix.
@@ -38,7 +41,7 @@ Read this first. Then `docs/build-log.md` (what was built, slice by slice) and `
 **One command: `bash tools/run_tests.sh`** — runs all 8 suites in parallel (~20 s), prints a PASS/FAIL table, exits 1 on any failure. Logs: `build/test-logs/<name>.log`. Pick suites: `bash tools/run_tests.sh rules df`. CI gate only: `CI=1 bash tools/run_tests.sh`. Timings: `SERIAL=1`. A broken suite is killed after 120 s.
 
 Suites (name: scene, about how many checks). A pass prints `N passed, 0 failed` (ui: `ALL PASSED`).
-`rules` test_runner 366 · `df` dogfight_test 270 · `touch` touch_test 25 · `ui` ui_smoke · `cards` cards_test 57 · `pool` pool_test 19 · `chal` challenges_test 116 · `holdem` holdem_test about 52-55 (random hands gate some checks, so the count moves).
+`rules` test_runner 366 · `df` dogfight_test 273 · `touch` touch_test 25 · `ui` ui_smoke · `cards` cards_test 57 · `pool` pool_test 19 · `chal` challenges_test 116 · `holdem` holdem_test about 52-55 (random hands gate some checks, so the count moves).
 - To add a suite: add one line to `SUITES` in `tools/run_tests.sh`.
 - cards_test prints one harmless "Drawing is only allowed inside _draw" error: the test times `_draw_room()` directly.
 - One suite by hand: `godot --headless --path . res://tests/<scene>.tscn --quit-after 30000 -- --fresh`.

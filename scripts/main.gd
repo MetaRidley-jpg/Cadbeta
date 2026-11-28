@@ -82,7 +82,15 @@ func _ready() -> void:
 		Game.say.emit("hello", 3)
 	get_viewport().size_changed.connect(_apply_safe_area)
 	_apply_safe_area()
+	%Portrait.visible = Game.cadavire_on           # disconnected, not deleted (T)
+	var fever_row := get_node_or_null("Root/Stage/HBox/StageRight/FeverRow") as Control
+	if fever_row:
+		fever_row.visible = Game.cadavire_on       # her Fever meter: off with her
 	_debug_setup()
+	# T: focus on the dogfight. As the real start scene (not inside a test), boot straight
+	# into it; --tycoon skips this (screenshots of the old screens).
+	if Game.dogfight_focus and get_tree().current_scene == self and not OS.get_cmdline_user_args().has("--tycoon") and not in_minigame:
+		start_dogfight.call_deferred()
 
 func _connect_signals() -> void:
 	%DialogueBox.line_started.connect(%Portrait.set_expression)
@@ -721,11 +729,14 @@ func start_holdem(seed_value := -1) -> bool:
 func _on_dogfight_finished(result_text: String) -> void:
 	%PopupTitle.text = "Dogfight over"
 	%PopupText.text = result_text
-	%PopupButton.text = "BACK"
+	%PopupButton.text = "FLY AGAIN" if Game.dogfight_focus else "BACK"
 	_popup_action = func():
 		%DogfightPage.stop()
 		set_minigame_mode(false)
-		show_page(PAGE_PLAY)
+		if Game.dogfight_focus:            # redirect: the dogfight is the whole game for now (T)
+			start_dogfight()
+		else:
+			show_page(PAGE_PLAY)
 	%PopupLayer.show()
 
 func _on_pool_finished(won: bool, result_text: String) -> void:

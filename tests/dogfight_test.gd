@@ -678,9 +678,21 @@ func _ready() -> void:
 	check(df.state == "over", "crash leads to the end screen")
 	check(main.get_node("%PopupLayer").visible, "result popup")
 	check(not Game.minigame_active, "minigame flag cleared")
+	check(main.get_node("%PopupButton").text == "FLY AGAIN", "focus mode: the end popup offers FLY AGAIN")
 	main.get_node("%PopupButton").pressed.emit()
 	await get_tree().process_frame
-	check(not main.in_minigame and Engine.time_scale == 1.0, "BACK restores the screen and time scale")
+	check(main.in_minigame and df.state != "over" and Engine.time_scale == 1.0, "FLY AGAIN restarts the dogfight (T: focus on dogfight)")
+	# the old path still works with the focus off (disconnected, not deleted)
+	Game.dogfight_focus = false
+	df.player.hp = 0.0
+	df._crash()
+	for k in 120:
+		df.sim_step(1.0 / 30.0)
+	main.get_node("%PopupButton").pressed.emit()
+	await get_tree().process_frame
+	check(not main.in_minigame and Engine.time_scale == 1.0, "focus off: BACK restores the screen and time scale")
+	Game.dogfight_focus = true
+	check(not main.get_node("%Portrait").visible, "Cadavire's portrait is disconnected (hidden, not deleted)")
 
 	# ---------------- full autopilot matches
 	var results: Array = []

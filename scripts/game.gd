@@ -11,6 +11,16 @@ signal costume_changed
 signal inventory_changed
 signal rank_changed(rank: int)
 signal say(category: String, priority: int)
+## T (2026-11-28): "For now remove cadavire and focus on dogfight. Don't delete just disconnect
+## and redirect" / "Text box space will still be used". Cadavire's lines and portrait are OFF
+## (nothing deleted: set cadavire_on = true to bring her back). The text box shows dogfight
+## RADIO text instead (Game.radio_say), and the app boots into the dogfight (main.gd).
+var cadavire_on := false
+var dogfight_focus := true
+signal radio(text: String)
+
+func radio_say(text: String) -> void:
+	radio.emit(text)
 signal taste_test(i: int, quality: int, eaten: float)
 signal floating(text: String, i: int)          # i = building index, -1 = top bar
 signal offline_earned(amount: float, seconds: float)

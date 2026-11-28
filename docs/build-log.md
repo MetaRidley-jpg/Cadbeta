@@ -379,3 +379,10 @@ T: "Here's some ui I made!" (Figma sheet: orange triangle / green dots / blue do
 - NEW shield (`DfPlane.SHIELD_MAX` 35, refills at 10/s after 4 s without a hit) takes hits first. Hull: green, red under 30%, grey ghost = damage just taken (holds 0.5 s, drains 40/s). Boost: 10 segments, blue with a chunky lighter centre band.
 - Flag `--dfhurt=hp,shield` for screenshots. Tests: dogfight 270 (+9).
 
+## Slice 16t+: Cadavire disconnected, dogfight focus (2026-11-28)
+T: "For now remove cadavire and focus on dogfight. Don't delete just disconnect and redirect" / "Text box space will still be used".
+- `Game.cadavire_on = false`: her lines (`Game.say`) are ignored, portrait and Fever row hidden. Nothing deleted: set it true to bring her back.
+- The same text box is now RADIO: `Game.radio_say(text)` (wave start with zone + hostiles, zone changes "ENTERING ...", course clear).
+- `Game.dogfight_focus = true`: the app boots into the dogfight (only as the real start scene; tests and `--tycoon` keep the old screens); the end popup says FLY AGAIN and restarts the dogfight.
+- Tests: dogfight 273 (FLY AGAIN restarts; focus off still returns to the tycoon; portrait hidden).
+

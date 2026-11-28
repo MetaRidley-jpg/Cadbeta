@@ -43,11 +43,21 @@ func complete() -> void:
 
 func _ready() -> void:
 	Game.say.connect(_on_say)
+	Game.radio.connect(_on_radio)
+	if not Game.cadavire_on:
+		var np := get_node_or_null("VBox/Head/NamePlate") as Label
+		if np:
+			np.text = "RADIO"
 	gui_input.connect(_on_gui_input)
 	_set_dim(true)
 
-func _on_say(category: String, priority: int) -> void:
+func _on_radio(text: String) -> void:
 	if locked:
+		return
+	show_line({"t": text, "e": "", "key": "radio"}, 2)
+
+func _on_say(category: String, priority: int) -> void:
+	if locked or not Game.cadavire_on:     # disconnected (T): the box carries dogfight radio
 		return
 	var line := Lines.pick(category)
 	if line.is_empty():

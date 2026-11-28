@@ -366,3 +366,6 @@ T: "Rings can spawn out of bounds" / "stop it from aiming into the ground" / "fi
 ## Slice 16t: 4x map (2026-11-28)
 T: "Ask me questions to 4x the map and make this just one quadrant".
 - The map is 4x bigger (4600 m square); the old islands are one quadrant. An invisible wall with a mint grid lets you glide along the edge. Everything is 30% faster; fights follow you. Plan for the alien zone, Queen, portals and bonus stages: `docs/world-4x.md`.
+
+## Slice 16t+: dogfight focus + T's HUD (2026-11-28)
+- T's 3-row HUD (shield / hull / boost) with a new shield. Cadavire is disconnected for now (not deleted); the app opens straight into the dogfight and the text box carries RADIO messages.
