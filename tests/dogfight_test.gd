@@ -152,6 +152,44 @@ func _ready() -> void:
 	q.boost_in = false
 	q.step(1.0 / 30.0)
 	check(q.boost_stage() == 0 and q.boost_time == 0.0, "letting go resets the stage")
+	# T: "let speed hold over longer when letting go": hold, then a gentle coast to cruise
+	var co := DfPlane.new()
+	co.setup("player", Vector3(0, 300, 0), 0.0)
+	co.boost = 100.0
+	co.boost_in = true
+	for k in 150:                      # 5 s: top speed reached
+		co.step(1.0 / 30.0)
+		co.boost = 100.0
+	var co_top := co.speed
+	co.boost_in = false
+	var co_at := {}
+	var co_cruise_t := -1.0
+	for k in 300:                      # 10 s after letting go, level flight
+		co.step(1.0 / 30.0)
+		co.position.y = 300.0
+		var co_s := (k + 1) / 30.0
+		for mark in [1.0, 2.5]:
+			if absf(co_s - mark) < 0.017:
+				co_at[mark] = co.speed
+		if co_cruise_t < 0.0 and co.speed <= DfPlane.KINDS.player.speed + 1.0:
+			co_cruise_t = co_s
+	check(co_at[1.0] >= co_top - 3.0, "top speed HOLDS 1 s after letting go (%.0f of %.0f)" % [co_at[1.0], co_top])
+	check(co_at[2.5] > 200.0, "it coasts down slowly (%.0f m/s at 2.5 s; old: cruise by 1.9 s)" % co_at[2.5])
+	check(co_cruise_t > 4.0 and co_cruise_t < 6.0, "back at cruise in ~5 s (%.1f s)" % co_cruise_t)
+	# drift still brakes at once (no coast)
+	var cd := DfPlane.new()
+	cd.setup("player", Vector3(0, 300, 0), 0.0)
+	cd.boost = 100.0
+	cd.boost_in = true
+	for k in 150:
+		cd.step(1.0 / 30.0)
+		cd.boost = 100.0
+	cd.boost_in = false
+	cd.drift = true
+	for k in 30:
+		cd.step(1.0 / 30.0)
+		cd.position.y = 300.0
+	check(cd.speed < co_top - 50.0 and not cd.coasting, "drift cancels the hold: it brakes (%.0f m/s after 1 s)" % cd.speed)
 	# drift boost: drift long enough, let go -> top speed for a moment + some meter back
 	var dq := DfPlane.new()
 	dq.setup("player", Vector3(0, 100, 0), 0.0)
@@ -260,7 +298,40 @@ func _ready() -> void:
 		for rr2 in rc.rings:
 			lowc = minf(lowc, rr2.pos.y - w.ground_y(rr2.pos))
 		check(lowc > 15.0, "%s rings stay above the ground (%.0f m)" % [rkind, lowc])
-	check(ring_kinds.size() == 4, "4 ring course variations")
+	check(ring_kinds.size() == 7, "7 ring course variations (%d)" % ring_kinds.size())
+	# T: "figure 8, big loop and helix": the right ring count, no two rings overlap, under the
+	# ceiling, and each one really has its shape
+	for nk in ["figure8", "bigloop", "helix"]:
+		rc.spawn(Vector3(0, 100, 0), Vector3.FORWARD, nk)
+		var nk_gap := INF
+		var nk_top := -INF
+		for a_i in rc.rings.size():
+			nk_top = maxf(nk_top, rc.rings[a_i].pos.y + DfRings.RING_RADIUS)
+			for b_i in range(a_i + 1, rc.rings.size()):
+				nk_gap = minf(nk_gap, rc.rings[a_i].pos.distance_to(rc.rings[b_i].pos))
+		check(rc.rings.size() == DfRings.count_for(nk) and nk_gap > DfRings.RING_RADIUS * 2.0, "%s: %d rings, none overlap (closest %.0f m)" % [nk, rc.rings.size(), nk_gap])
+		check(nk_top <= 300.0, "%s stays under the 300 m ceiling (top %.0f m)" % [nk, nk_top])
+		var nk_r: Array = rc.rings
+		var nk_ok := false
+		match nk:
+			"figure8":     # the line crosses itself: rings on both sides, and the heading turns both ways
+				var nk_l := 0
+				var nk_rt := 0
+				for r in nk_r:
+					if (r.pos - rc.origin).dot(rc.side) > 20.0: nk_rt += 1
+					if (r.pos - rc.origin).dot(rc.side) < -20.0: nk_l += 1
+				nk_ok = nk_l >= 3 and nk_rt >= 3
+			"bigloop":     # goes over the top: a ring flown upside down (normal pointing back)
+				var nk_back := false
+				for r in nk_r:
+					if r.normal.dot(rc.axis) < -0.5: nk_back = true
+				nk_ok = nk_back and nk_r[3].pos.y > nk_r[0].pos.y + 150.0
+			"helix":       # climbs every ring and turns > 270 deg
+				nk_ok = true
+				for k in range(1, nk_r.size()):
+					if nk_r[k].pos.y <= nk_r[k - 1].pos.y - 6.0: nk_ok = false
+				nk_ok = nk_ok and nk_r[nk_r.size() - 1].normal.dot(rc.axis) > 0.6 and nk_r[3].normal.dot(rc.axis) < -0.6
+		check(nk_ok, "%s has its shape" % nk)
 	check(DfRings.RING_RADIUS > w.HOOP_RADIUS * 1.5, "rings are bigger than the old hoops")
 	rc.spawn(Vector3(0, 100, 0), Vector3.FORWARD, "slalom")
 	var rg1: Dictionary = rc.rings[1]
@@ -911,6 +982,63 @@ func _ready() -> void:
 				if bk_loaded.frames[i].rect != bk_live.frames[i].rect or bk_loaded.frames[i].anchor.distance_to(bk_live.frames[i].anchor) > 0.001:
 					bk_same = false
 		check(bk_same and absf(bk_loaded.m_per_px - bk_live.m_per_px) < 1e-6, "baked %s = live bake (pixels, frames, scale)" % bk_key)
+
+	# flyable: the demo pilot (no boost, 95 m/s cap, plain steer-to-next-ring) clears each new
+	# course in time, with the ring launches
+	for fk in DfRings.KINDS:
+		df.start(12)
+		df.set_process(false)
+		df.start_demo("rings_" + fk)
+		var fk_t := 0.0
+		var fk_crash := false
+		while fk_t < 40.0 and not df.cyan_laser:
+			df.sim_step(1.0 / 30.0)
+			fk_t += 1.0 / 30.0
+			if df.state == "crash" or df.state == "over":
+				fk_crash = true
+				break
+		check(df.cyan_laser and not fk_crash, "%s course is flyable: the demo pilot clears it (%.1f s, ring %d/%d%s)" % [fk, fk_t, df.rings.next, df.rings.rings.size(), ", CRASHED" if fk_crash else ""])
+		df.stop()
+
+	# ---------------- T: "rings can spawn out of bounds" + "stop it from aiming into the ground"
+	var ob_rc := DfRings.new()
+	ob_rc.setup(Callable(), 99)
+	var ob_worst := 0.0
+	var ob_n := 0
+	for ob_kind in DfRings.KINDS:
+		for ob_a in 12:
+			var ob_ang := TAU * ob_a / 12.0
+			var ob_out := Vector3(cos(ob_ang), 0.0, sin(ob_ang))
+			for ob_r in [900.0, 1150.0, 1300.0]:        # near the edge, at it, and past it (TURN BACK)
+				var ob_pos: Vector3 = ob_out * float(ob_r) + Vector3.UP * 150.0
+				ob_rc.spawn(ob_pos, ob_out.rotated(Vector3.UP, 0.3), ob_kind)   # heading OUT of the arena
+				for ob_t in [0.0, 3.0, 7.0, 12.0, 20.0]:
+					for i in DfRings.RINGS:
+						var ob_p: Vector3 = ob_rc.pose(i, ob_t)[0]
+						ob_worst = maxf(ob_worst, Vector2(ob_p.x, ob_p.z).length())
+						ob_n += 1
+	check(ob_worst <= DfWorld.AREA_RADIUS - 50.0, "ring courses stay inside the arena, even spawned at the edge heading out (worst %.0f m of %.0f, %d ring poses)" % [ob_worst, DfWorld.AREA_RADIUS, ob_n])
+	df.start(3)
+	df.set_process(false)
+	# final ring with the nose pointing down (the loop wheel's last ring): thrown ahead, not down
+	df.player.position = Vector3(0, 160, 300)
+	df.player.yaw = 0.0
+	df.player.pitch = -1.2
+	df.rings.spawn(df.player.position + Vector3(0, 0, 400), Vector3.FORWARD, "loop")
+	df._ring_launch(true)
+	check(df.player.launch_dir.y >= 0.0, "last-ring launch never points down (y %.2f)" % df.player.launch_dir.y)
+	# a ring-to-ring launch aimed at the sea from low: tipped up until the whole throw is clear
+	var gl_from := Vector3(200, 70, 200)
+	var gl_d: Vector3 = df.safe_launch_dir(gl_from, Vector3(0, -1, -1.2), 210.0, 0.55)
+	var gl_min := INF
+	for k in range(1, 9):
+		var gl_q := gl_from + gl_d * 210.0 * 1.75 * k / 8.0
+		gl_min = minf(gl_min, gl_q.y - df.world.ground_y(gl_q))
+	check(gl_min >= df.LAUNCH_CLEAR, "a launch aimed into the sea is tipped up (min clearance %.0f m)" % gl_min)
+	# a safe launch is untouched (T: keep the exact launches)
+	var gl_ok: Vector3 = df.safe_launch_dir(Vector3(0, 200, 0), Vector3(0.2, 0.05, -1.0), 210.0, 0.55)
+	check(gl_ok.is_equal_approx(Vector3(0.2, 0.05, -1.0).normalized()), "a launch with room to spare keeps its exact aim")
+	df.stop()
 
 	print("DOGFIGHT TESTS: %d passed, %d failed" % [passes, fails])
 	get_tree().quit(1 if fails > 0 else 0)

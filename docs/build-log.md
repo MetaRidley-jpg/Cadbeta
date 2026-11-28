@@ -357,3 +357,11 @@ T: "Just continue, make dogfight run better as well". Detail: `docs/dogfight-per
 - Checked in the exported web build (headless Chromium): baked files load, sprites draw right, script work ~6-9 ms per frame at wave 8.
 - Tests: dogfight 201 (+4: sprites() is a cache lookup; all atlases fresh; 2 baked = live bake pixel checks). A stale file makes the test fail (checked).
 
+## Slice 16s: ring bounds, ground-safe launches, 3 new ring shapes, boost hold (2026-11-28)
+T: "Rings can spawn out of vounds" / "Also stop it from aiming into the ground" / "Also create potential paths for figure 8 big loop and helix shapes" / "When boosting let speed hold over longer when letting go of the button".
+- Bounds: courses stay inside the arena (footprint check + headings back to the middle). Old worst case: 2,422 m out (test fails without the fix: checked).
+- Launches: the last-ring launch never points down; every launch is tipped up until the throw + pull-out clears the ground by 35 m. Exact aim kept when safe.
+- New courses FIGURE 8 (8 rings), BIG LOOP (6, tilted 50°), HELIX (7). Two big-loop designs failed the new flyability test (oval hairpins, full-turn wheel) and were replaced. Detail: `docs/rings-and-cyan-laser.md`.
+- Boost: let go = the speed holds 0.4 / 0.8 / 1.2 s (stage 1/2/top), then coasts at 35 m/s² (was 70). Top speed → cruise ~4.9 s (was ~1.9 s). Drift still brakes at once. `DfPlane.BOOST_HOLD`, `COAST_DECEL`.
+- Tests: dogfight 231 (+30: bounds over 3,600+ ring poses, launch safety x3, 3 shapes x3, flyability x7, boost hold x4).
+

@@ -356,3 +356,9 @@ T: "Optimize cadbeta for future work".
 T: "Just continue, make dogfight run better as well".
 - Jets + fx 26 ms → 2 ms per frame at wave 8 (a PNG was re-read every frame for every jet). Match-start bake 6.5 s → 45 ms (`art/baked/`, `bash tools/bake_sprites.sh`). No more freeze when a new jet kind appears.
 - Phone profiler: open the game with `?prof` at the end of the address. Detail: `docs/dogfight-performance.md`.
+
+## Slice 16s: rings + boost (2026-11-28)
+T: "Rings can spawn out of bounds" / "stop it from aiming into the ground" / "figure 8, big loop and helix shapes" / "let speed hold over longer when letting go of the button".
+- Ring courses stay inside the arena; launches never throw you into the ground or sea.
+- 3 new courses: FIGURE 8, BIG LOOP (a 140 m loop leaned 50°: a round upright loop this big does not fit under the 300 m ceiling), HELIX. All 7 courses pass a flyability test.
+- Boost: the speed holds after you let go, then coasts down (~4.9 s to cruise, was ~1.9 s).

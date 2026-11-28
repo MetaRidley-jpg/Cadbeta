@@ -38,7 +38,7 @@ Read this first. Then `docs/build-log.md` (what was built, slice by slice) and `
 **One command: `bash tools/run_tests.sh`** — runs all 8 suites in parallel (~20 s), prints a PASS/FAIL table, exits 1 on any failure. Logs: `build/test-logs/<name>.log`. Pick suites: `bash tools/run_tests.sh rules df`. CI gate only: `CI=1 bash tools/run_tests.sh`. Timings: `SERIAL=1`. A broken suite is killed after 120 s.
 
 Suites (name: scene, about how many checks). A pass prints `N passed, 0 failed` (ui: `ALL PASSED`).
-`rules` test_runner 366 · `df` dogfight_test 201 · `touch` touch_test 25 · `ui` ui_smoke · `cards` cards_test 57 · `pool` pool_test 19 · `chal` challenges_test 116 · `holdem` holdem_test about 52-55 (random hands gate some checks, so the count moves).
+`rules` test_runner 366 · `df` dogfight_test 231 · `touch` touch_test 25 · `ui` ui_smoke · `cards` cards_test 57 · `pool` pool_test 19 · `chal` challenges_test 116 · `holdem` holdem_test about 52-55 (random hands gate some checks, so the count moves).
 - To add a suite: add one line to `SUITES` in `tools/run_tests.sh`.
 - cards_test prints one harmless "Drawing is only allowed inside _draw" error: the test times `_draw_room()` directly.
 - One suite by hand: `godot --headless --path . res://tests/<scene>.tscn --quit-after 30000 -- --fresh`.
@@ -51,7 +51,7 @@ xvfb-run -a -s "-screen 0 1280x1400x24" godot --path . --rendering-method gl_com
 Frames come out 540x960. GIF: `bash tools/record_demo.sh NAME FRAMES ARGS` (prefix `xvfb-run -a`). A `.avi` output records sound too. Add `--phone` to get the phone layout on desktop.
 
 Useful ARGS:
-- Dogfight: `--dogfight --dfwave=N --dfgod --dfdemo=NAME`. Demos: `kami loop roll half immelmann fog beach rings[_slalom|_corkscrew|_loop|_stairs] ringsreplay[_kind] boss bossko asteroid koi volcano ko`. Also `--dfcrashat=7`, `--dfsim=3`, `--dfhold`, `--dforbit=165`. Demos keep the fixed weather order; real play rolls weather per wave.
+- Dogfight: `--dogfight --dfwave=N --dfgod --dfdemo=NAME`. Demos: `kami loop roll half immelmann fog beach rings[_slalom|_corkscrew|_loop|_stairs|_figure8|_bigloop|_helix] ringsreplay[_kind] boss bossko asteroid koi volcano ko`. Also `--dfcrashat=7`, `--dfsim=3`, `--dfhold`, `--dforbit=165`. Demos keep the fixed weather order; real play rolls weather per wave.
 - UI: `--tab=N`, `--playopts`, `--fever`, `--marrow=N`, `--memlog` (MEM lines), `--phone`.
 - Cards: `--holdem --hebuy=5 --heauto --fast`, `--cards --bjauto`.
 - Full list: `grep -rhoE 'args\.has\("[a-z_]+"\)' scripts/`.
@@ -76,6 +76,7 @@ Useful ARGS:
 - **Stack sprites** have their origin at the bottom slice (hit centres, muzzles).
 - **Stale baked sprites:** change art or a sprite model → run `bash tools/bake_sprites.sh`, or dogfight_test fails ("all sprite atlases load from fresh art/baked files"). Dev runs still work (they bake live, with a WARN).
 - **Per-frame work:** never load, decode or build models in a per-frame path. Profile with `--dfprof` before you guess (the old "16 ms draw cost" was a PNG re-read, not drawing).
+- **Ring courses must fit under the 300 m ceiling.** A round upright loop maxes out at ~95 m radius. New shapes: run the flyability test (all `DfRings.KINDS`); curves tighter than ~110 m radius crash the pilot.
 - **Draw call count:** the card room crashed iPhone Safari at ~14k draw calls; batch with `RenderingServer.canvas_item_add_triangle_array`.
 
 ## Open work (see docs/todo.md)

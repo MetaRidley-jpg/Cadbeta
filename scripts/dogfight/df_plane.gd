@@ -31,6 +31,12 @@ const BOOST_DRAIN := 26.0      # boost meter per second while boosting
 ## Player boost has 3 stages by how long BOOST is held (T's sheet: boost 1, boost 2, top speed).
 const BOOST_STAGE_TIME := [0.0, 1.0, 2.2]        # seconds held to reach stage 1, 2, 3
 const BOOST_STAGE_SPEED := [0.0, 185.0, 220.0, 255.0]
+## T (2026-11-28): "when boosting let speed hold over longer when letting go of the button".
+## Let go of BOOST: the speed you reached HOLDS for BOOST_HOLD[stage] s, then COASTS down to
+## cruise at COAST_DECEL (normal ACCEL is 70). Top speed -> cruise: ~4.9 s (was ~1.9 s).
+## Drift (a brake) and climbing still slow you at once.
+const BOOST_HOLD := [0.0, 0.4, 0.8, 1.2]
+const COAST_DECEL := 35.0
 ## Drift boost (player): drift long enough, let go, and you shoot out at TOP SPEED for a
 ## moment and get some boost meter back. Two tiers by how long you held the drift.
 const DRIFT_TIERS := [1.1, 2.2]              # drift seconds for tier 1 / tier 2
@@ -90,6 +96,9 @@ var drift_boost_fired := 0     # tier of the last drift boost (for the game to r
 var turn := 0.0
 var pitch_in := 0.0
 var boost_in := false
+var coast_t := 0.0             # > 0: boost just released, speed holds
+var coasting := false          # after a boost: slow down gently (COAST_DECEL) until cruise
+var _last_stage := 0
 var drift := false
 var fire_cd := 0.0
 var last_hit_by_player := 0.0  # seconds since the player last shot it (takedown credit)
@@ -211,9 +220,27 @@ func step(dt: float) -> void:
 		boost = maxf(0.0, boost - BOOST_DRAIN * dt)
 	elif drift:
 		target = DRIFT_SPEED
+	var rate := ACCEL
+	if kind == "player":
+		var stage_now := boost_stage()
+		if stage_now == 0 and _last_stage > 0 and drift_boost_t <= 0.0:
+			coast_t = BOOST_HOLD[_last_stage]          # just let go: hold, then coast
+			coasting = true
+		_last_stage = stage_now
+		if drift or boosting or launch_t > 0.0:
+			coast_t = 0.0
+			coasting = false
+		if coasting and target < speed:
+			if coast_t > 0.0:
+				coast_t -= dt
+				target = speed                         # hold
+			else:
+				rate = COAST_DECEL
+		elif coasting:
+			coasting = false                           # back at cruise
 	if not boosting:
 		boost_time = 0.0
-	speed = move_toward(speed, minf(target, speed_cap), ACCEL * dt)
+	speed = move_toward(speed, minf(target, speed_cap), rate * dt)
 	speed -= forward().y * 22.0 * dt    # climbing costs speed, diving gains it
 	speed = clampf(speed, 60.0, 260.0)
 	var grip := DRIFT_GRIP if drift else GRIP

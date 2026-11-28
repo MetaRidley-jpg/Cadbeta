@@ -481,7 +481,7 @@ func _player_step(dt: float) -> void:
 		if done:
 			_supercharge()
 		else:
-			_show_msg("RING %d/%d" % [rings.next, DfRings.RINGS], 0.9, "+BOOST")
+			_show_msg("RING %d/%d" % [rings.next, rings.rings.size()], 0.9, "+BOOST")
 			if _hoop_say_cd <= 0.0:
 				_hoop_say_cd = 15.0
 				Game.say.emit("df_hoop", 1)
@@ -1407,14 +1407,42 @@ static func course_gap(w: int) -> float:
 
 func _ring_launch(done: bool) -> void:
 	if done or rings.next >= rings.rings.size():
-		player.launch(player.forward(), 0.3, 230.0)
+		var f := player.forward()
+		if f.y < 0.0:                # the last loop-wheel ring points down: throw ahead, not at the sea
+			f = Vector3(f.x, 0.0, f.z) if Vector2(f.x, f.z).length() > 0.05 else rings.axis
+		player.launch(safe_launch_dir(player.position, f, 230.0, 0.3), 0.3, 230.0)
 		return
 	var p: Vector3 = rings.rings[rings.next].pos
 	for k in 3:                      # lead: predict the ring at arrival (3 passes converge)
 		var tt: float = player.position.distance_to(p) / 210.0
 		p = rings.pose(rings.next, rings.t + tt)[0]
-	player.launch(p - player.position, 0.55, 210.0)
+	player.launch(safe_launch_dir(player.position, p - player.position, 210.0, 0.55), 0.55, 210.0)
 	Sfx.play("drift_boost", -6.0, 0.05)
+
+## T: "stop it from aiming into the ground". A launch is a straight throw at >= 210 m/s; the
+## jet needs about a second after it to pull out. Sample that whole line (launch + 1.2 s);
+## while any point is closer than LAUNCH_CLEAR to the ground or a spire top, tip the aim up
+## 5 degrees (max 16 steps = 80 degrees).
+const LAUNCH_CLEAR := 35.0
+func safe_launch_dir(from: Vector3, dir: Vector3, spd: float, time: float) -> Vector3:
+	if dir.length() < 0.01:
+		return dir
+	var d := dir.normalized()
+	var reach := spd * (time + 1.2)
+	for it in 16:
+		var ok := true
+		for k in range(1, 9):
+			var q := from + d * reach * k / 8.0
+			if q.y - world.ground_y(q) < LAUNCH_CLEAR:
+				ok = false
+				break
+		if ok:
+			return d
+		var right := d.cross(Vector3.UP)
+		if right.length() < 0.01:
+			return Vector3.UP
+		d = d.rotated(right.normalized(), deg_to_rad(5.0))
+	return d
 
 # ---------------------------------------------------------------- cyan laser
 func _supercharge() -> void:
@@ -2549,7 +2577,7 @@ func _update_enemies_left(real: float) -> void:
 	if rings_label != null:
 		rings_label.visible = rings.active() and rings.timer >= 0.0 and state in ["wave", "break", "intro"]
 		if rings_label.visible:
-			rings_label.text = "RINGS %d/%d · %ds" % [rings.next, DfRings.RINGS, int(ceil(rings.time_left()))]
+			rings_label.text = "RINGS %d/%d · %ds" % [rings.next, rings.rings.size(), int(ceil(rings.time_left()))]
 			rings_label.add_theme_color_override("font_color", Color("ff4b4b") if rings.time_left() < 6.0 else Color("ffd23f"))
 	var n := enemies_left()
 	enemies_label.visible = state == "wave" and n > 0

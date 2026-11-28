@@ -12,9 +12,26 @@ extends RefCounted
 ##   corkscrew the line twists like a drill
 ##   loop      the rings ride a slow vertical wheel (fly a loop through them)
 ##   stairs    the rings climb in steps and slide back and forth like a conveyor
+## T (2026-11-28): "create potential paths for figure 8, big loop and helix shapes":
+##   figure8   8 rings on a flat figure 8 (two lobes), swaying side to side
+##   bigloop   6 rings on a big round loop (radius 140 m) TILTED 50 deg from vertical, an
+##             oblique loop: under the 300 m ceiling a round vertical loop can only be the
+##             95 m LOOP WHEEL. (A flat oval was tried: its ends were 36 m hairpins, the jet
+##             needs ~110 m, the test pilot flew into the sea.) Rings cover the climb, the
+##             top and half the way down; the wheel rocks a little.
+##   helix     7 rings on a climbing spiral turn (330 deg round a 110 m column, +108 m),
+##             the whole spiral turns slowly round its column
 
-const KINDS := ["slalom", "corkscrew", "loop", "stairs"]
-const TITLES := {"slalom": "SLALOM", "corkscrew": "CORKSCREW", "loop": "LOOP WHEEL", "stairs": "SKY STAIRS"}
+const KINDS := ["slalom", "corkscrew", "loop", "stairs", "figure8", "bigloop", "helix"]
+const TITLES := {"slalom": "SLALOM", "corkscrew": "CORKSCREW", "loop": "LOOP WHEEL", "stairs": "SKY STAIRS",
+	"figure8": "FIGURE 8", "bigloop": "BIG LOOP", "helix": "HELIX"}
+const COUNT := {"figure8": 8, "bigloop": 6, "helix": 7}   # rings per course (others: RINGS)
+const F8_L := 230.0              # figure 8: lobe reach along the course line (m)
+const F8_W := 110.0              # figure 8: half width
+const BIG_R := 140.0             # big loop: radius
+const BIG_TILT := deg_to_rad(50.0)   # big loop: lean from vertical (vertical size 2 R cos = 180 m)
+const HELIX_R := 110.0           # helix: column radius (the jet turns ~110 m at cruise)
+const HELIX_CLIMB := 18.0        # helix: m up per ring
 const RINGS := 5
 const RING_RADIUS := 42.0        # hit radius (old hoops 16; first ring courses 29). T: "skinnier and larger"
 const RING_SCALE := 1.5          # the thin ring model (radius 14 px x 2 m/px) x 1.5 = 42 m
@@ -25,6 +42,8 @@ const SPAWN_AHEAD := 650.0       # m in front of the player
 const LOST_DIST := 2600.0        # player this far away and not started: move the course
 const MAX_TOP := 275.0           # the top of a course stays under the 300 m ceiling
 const LOOP_R := 95.0
+const EDGE := DfWorld.AREA_RADIUS - 110.0   # the whole course stays this far inside the arena (T: "rings can spawn out of bounds")
+const SWAY := 40.0               # m a ring can move sideways off the course line (slalom 34, corkscrew 30)
 # Path speeds are kept to ~15-20 m/s sideways (the jet flies 100-150 m/s): the rings drift
 # and push around but can be caught. The first tune (~50 m/s) beat even the scripted pilot.
 
@@ -67,40 +86,107 @@ func spawn(pos: Vector3, fwd: Vector3, kind_override := "") -> void:
 	base = base.normalized()
 	# try a few headings, keep the one that sits lowest (spires and hills push a course up;
 	# above the 300 m ceiling the game turns you back down)
-	var best_clear := INF
-	for k in 8:
-		var ax := base.rotated(Vector3.UP, rng.randf_range(-0.5, 0.5) if k < 4 else rng.randf_range(-1.6, 1.6))
-		var o := pos + ax * SPAWN_AHEAD
-		var c := _clearance(o, ax)
-		if c < best_clear - 1.0:
+	# Every candidate is moved inside the arena first (`_inside`); a candidate that had to move
+	# far scores worse, so a course near the edge prefers a heading back toward the middle.
+	var best_score := INF
+	var best_clear := 0.0
+	var home := Vector3(-pos.x, 0.0, -pos.z)
+	for k in 12:
+		var ax: Vector3
+		if k < 4:
+			ax = base.rotated(Vector3.UP, rng.randf_range(-0.5, 0.5))
+		elif k < 8:
+			ax = base.rotated(Vector3.UP, rng.randf_range(-1.6, 1.6))
+		else:                        # toward the middle of the arena
+			ax = (home.normalized() if home.length() > 1.0 else base).rotated(Vector3.UP, rng.randf_range(-0.7, 0.7))
+		var o0 := pos + ax * SPAWN_AHEAD
+		var o := _inside(o0, ax, kind)
+		var c := _clearance(o, ax, kind)
+		var score := c + Vector2(o.x - o0.x, o.z - o0.z).length() * 0.5
+		if score < best_score - 1.0:
+			best_score = score
 			best_clear = c
 			axis = ax
 			origin = o
-		if c <= 5.0 and k >= 1:
+		if score <= 5.0 and k >= 1:
 			break
 	side = axis.cross(Vector3.UP).normalized()
-	var lift := LOOP_R + 45.0 if kind == "loop" else rng.randf_range(70.0, 110.0)
+	var lift := rng.randf_range(70.0, 110.0)
+	match kind:
+		"loop": lift = LOOP_R + 45.0
+		"bigloop": lift = 45.0       # origin = the bottom ring
+		"helix": lift = rng.randf_range(60.0, 90.0)
+	if kind_override == "" and best_clear + 35.0 > MAX_TOP - _height(kind):
+		spawn(pos, fwd, ["slalom", "figure8"][rng.randi_range(0, 1)])   # too tall for this spot
+		return
 	origin.y = minf(best_clear + lift, MAX_TOP - _height(kind))
 	t = 0.0
 	next = 0
 	timer = -1.0
 	cooldown = 0.0
 	rings.clear()
-	for i in RINGS:
+	for i in count_for(kind):
 		rings.append({"pos": Vector3.ZERO, "normal": axis, "passed": false, "pop": 0.0, "ppos": Vector3.ZERO, "pnormal": axis})
 	_update_poses()
 	_update_poses()                           # ppos = pos at spawn
 
+static func count_for(k: String) -> int:
+	return int(COUNT.get(k, RINGS))
+
+## Course footprint in its own frame: [along min, along max, side min, side max] (m, ring
+## centres + their sway). Used to keep the whole course inside the arena.
+static func box(k: String) -> Array:
+	match k:
+		"loop": return [0.0, LOOP_R * 2.0, -SWAY, SWAY]
+		"stairs": return [0.0, (RINGS - 1) * SPACING + 32.0, -SWAY, SWAY]
+		"figure8": return [-F8_L, F8_L, -F8_W - 14.0, F8_W + 14.0]
+		"bigloop": return [-BIG_R - 8.0, BIG_R + 8.0, -8.0, BIG_R * 2.0 * sin(BIG_TILT) + 8.0]
+		"helix": return [-HELIX_R - 8.0, HELIX_R + 8.0, -8.0, HELIX_R * 2.0 + 8.0]
+	return [0.0, (RINGS - 1) * SPACING, -SWAY, SWAY]
+
+## Where the ground is sampled under a course. The first 4 kinds keep their old line (the
+## centre line, 0..440 m) so their placement does not change.
+static func _clear_box(k: String) -> Array:
+	if k in ["slalom", "corkscrew", "loop", "stairs", ""]:
+		return [0.0, (RINGS - 1) * SPACING, 0.0, 0.0]
+	return box(k)
+
+## Move a course origin (flat) so the whole footprint sits within EDGE of the arena centre.
+## The arena is a circle (convex), so the 4 corners of the footprint suffice.
+static func _inside(o: Vector3, ax: Vector3, k: String) -> Vector3:
+	var sd := ax.cross(Vector3.UP).normalized()
+	var bx := box(k)
+	var out := o
+	for it in 6:
+		var worst := 0.0
+		var push := Vector2.ZERO
+		for a in [bx[0], bx[1]]:
+			for b in [bx[2], bx[3]]:
+				var q: Vector3 = out + ax * float(a) + sd * float(b)
+				var r := Vector2(q.x, q.z).length()
+				if r - EDGE > worst:
+					worst = r - EDGE
+					push = -Vector2(q.x, q.z).normalized() * (worst + 1.0)
+		if worst <= 0.0:
+			break
+		out += Vector3(push.x, 0.0, push.y)
+	return out
+
 ## Ground + spire tops under a course line.
-func _clearance(o: Vector3, ax: Vector3) -> float:
+func _clearance(o: Vector3, ax: Vector3, k := "") -> float:
+	var sd := ax.cross(Vector3.UP).normalized()
+	var cb := _clear_box(k)
+	var pts: Array = []
+	for i in 5:
+		for j in (1 if cb[2] == cb[3] else 3):
+			pts.append(o + ax * lerpf(cb[0], cb[1], i / 4.0) + sd * lerpf(cb[2], cb[3], j / 2.0))
 	var clear := 0.0
-	for k in 5:
-		clear = maxf(clear, float(_ground.call(o + ax * SPACING * k)) if _ground.is_valid() else 0.0)
+	for q in pts:
+		clear = maxf(clear, float(_ground.call(q)) if _ground.is_valid() else 0.0)
 	for sp in _spires:
 		if not sp.get("alive", true):
 			continue
-		for k in 5:
-			var q := o + ax * SPACING * k
+		for q in pts:
 			if Vector2(q.x - sp.pos.x, q.z - sp.pos.z).length() < float(sp.radius) + 70.0:
 				clear = maxf(clear, (float(_ground.call(sp.pos)) if _ground.is_valid() else 0.0) + float(sp.height) + 10.0)
 	return clear
@@ -111,6 +197,9 @@ func _height(k: String) -> float:
 		"loop": return LOOP_R + RING_RADIUS
 		"stairs": return RINGS * 20.0 + 6.0 + RING_RADIUS
 		"corkscrew": return 30.0 + RING_RADIUS
+		"figure8": return 18.0 + RING_RADIUS
+		"bigloop": return BIG_R * 2.0 * cos(BIG_TILT) + RING_RADIUS
+		"helix": return (count_for(k) - 1) * HELIX_CLIMB + 6.0 + RING_RADIUS
 	return RING_RADIUS
 
 ## Ring i's pose at course time `at`: [position, normal (the way you fly through it)].
@@ -134,6 +223,36 @@ func pose(i: int, at: float) -> Array:
 			var slide := sin(at * 0.5 + i * 1.1) * 32.0
 			var bob := sin(at * 1.2 + i * 1.7) * 6.0
 			return [origin + axis * (s + slide) + Vector3.UP * (i * 20.0 + bob), (axis + Vector3.UP * 0.2).normalized()]
+		"figure8":
+			# lemniscate: along = L sin u, side = W sin 2u. Rings sit off the crossing point
+			# (u = 0 and PI), so no two rings overlap. The whole 8 sways side to side.
+			var n := count_for(kind)
+			var u := TAU * (i + 0.5) / n
+			var sway := sin(at * 0.4) * 12.0
+			var p := origin + axis * F8_L * sin(u) + side * (F8_W * sin(2.0 * u) + sway) + Vector3.UP * 18.0 * cos(u)
+			var tng := axis * F8_L * cos(u) + side * 2.0 * F8_W * cos(2.0 * u) - Vector3.UP * 18.0 * sin(u)
+			return [p, tng.normalized()]
+		"bigloop":
+			# a round wheel in a plane leaned BIG_TILT toward `side`: i = 0 at the bottom (at the
+			# origin, flown along the line), then up, over the top inverted, and down
+			var n2 := count_for(kind)
+			var v := Vector3.UP * cos(BIG_TILT) + side * sin(BIG_TILT)
+			var c2 := origin + v * BIG_R
+			# rings from the bottom to half way down the back (-90..180 deg): never on the low
+			# end of the dive. The wheel rocks +-9 deg (a full turn carried the last ring down to
+			# 50 m and the test pilot dove into the sea after it)
+			var b := -PI * 0.5 + deg_to_rad(270.0) * i / (n2 - 1) + sin(at * 0.3) * 0.15
+			var p2 := c2 + (axis * cos(b) + v * sin(b)) * BIG_R
+			var tg2 := -axis * sin(b) + v * cos(b)
+			return [p2, tg2.normalized()]
+		"helix":
+			# a climbing turn round a column HELIX_R to the side: ring 0 at the origin, heading
+			# along the line; each ring 55 deg further round and HELIX_CLIMB higher
+			var ph := deg_to_rad(55.0) * i + at * 0.12     # the whole spiral turns slowly (~13 m/s)
+			var col := origin + side * HELIX_R
+			var p3 := col + (-side * cos(ph) + axis * sin(ph)) * HELIX_R + Vector3.UP * (i * HELIX_CLIMB + sin(at * 1.1 + i) * 6.0)
+			var tg3 := (side * sin(ph) + axis * cos(ph)) * HELIX_R + Vector3.UP * HELIX_CLIMB / deg_to_rad(55.0)
+			return [p3, tg3.normalized()]
 	return [origin + axis * s, axis]
 
 func _update_poses() -> void:

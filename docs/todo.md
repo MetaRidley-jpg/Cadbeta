@@ -25,6 +25,7 @@ Order = what I do next, top first. **P0** blocks shipping or is T's direct ask. 
 4c. **Hold'em test count is not fixed (about 52-55).** Seed the RNG in `holdem_test.gd` so each run checks the same hands.
 4b. **More phone notes from T:** dogfight smoothness (boss wave, asteroid), touch controls in the dogfight and pool, text size, the replay strip. Add an on-screen fps counter to the web build for this.
 5. ✅ **The 16 ms "draw cost"** (slice 16r): it was `sprites()` re-reading PNGs every frame, not drawing. Fixed + baked atlases. Detail: `docs/dogfight-performance.md`.
+5a. ✅ **Ring bounds, ground-safe launches, figure 8 / big loop / helix, boost hold** (slice 16s). T: phone-test the 3 new shapes and the boost feel (`BOOST_HOLD`, `COAST_DECEL` are the knobs).
 5b. **T: phone-test with `?prof`** (https://metaridley-jpg.github.io/Cadbeta/?prof). Send a screenshot of the readout in a busy wave and the boss.
 5c. **Koi draw** is now the top cost (peaks 13 ms on web). Needs T's call: lower detail at mid range, or a shader koi.
 6. ~~**Draw batching plan**~~ (not needed: draw calls were never the cost; koi batching measured slower) (only if 5 is not enough): move the sprite pass from per-item `draw_*` calls to one batched mesh (MultiMesh or one ArrayMesh per frame), or move sort + draw to GDExtension (C# does not export to the web in Godot 4).
