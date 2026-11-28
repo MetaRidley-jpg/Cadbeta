@@ -41,7 +41,7 @@ Read this first. Then `docs/build-log.md` (what was built, slice by slice) and `
 **One command: `bash tools/run_tests.sh`** — runs all 8 suites in parallel (~20 s), prints a PASS/FAIL table, exits 1 on any failure. Logs: `build/test-logs/<name>.log`. Pick suites: `bash tools/run_tests.sh rules df`. CI gate only: `CI=1 bash tools/run_tests.sh`. Timings: `SERIAL=1`. A broken suite is killed after 120 s.
 
 Suites (name: scene, about how many checks). A pass prints `N passed, 0 failed` (ui: `ALL PASSED`).
-`rules` test_runner 366 · `df` dogfight_test 273 · `touch` touch_test 25 · `ui` ui_smoke · `cards` cards_test 57 · `pool` pool_test 19 · `chal` challenges_test 116 · `holdem` holdem_test about 52-55 (random hands gate some checks, so the count moves).
+`rules` test_runner 366 · `df` dogfight_test 276 · `touch` touch_test 25 · `ui` ui_smoke · `cards` cards_test 57 · `pool` pool_test 19 · `chal` challenges_test 116 · `holdem` holdem_test about 52-55 (random hands gate some checks, so the count moves).
 - To add a suite: add one line to `SUITES` in `tools/run_tests.sh`.
 - cards_test prints one harmless "Drawing is only allowed inside _draw" error: the test times `_draw_room()` directly.
 - One suite by hand: `godot --headless --path . res://tests/<scene>.tscn --quit-after 30000 -- --fresh`.
@@ -88,5 +88,5 @@ Useful ARGS:
 ## Open work (see docs/todo.md)
 - T phone-tests rings / cyan laser / course gap (slice 16p).
 - Dogfight frame cost: fixed in slice 16r (sprites() cache + baked atlases). T phone-tests with `?prof`. Koi draw is the top cost now.
-- 4x world: `docs/world-4x.md` (16u highways next).
+- 4x world: `docs/world-4x.md` (16v alien hive next).
 - Enemy AI depth, dogfight-only rewards, more Cadavire in the dogfight, Pinball.

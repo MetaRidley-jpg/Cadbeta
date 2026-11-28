@@ -386,3 +386,9 @@ T: "For now remove cadavire and focus on dogfight. Don't delete just disconnect 
 - `Game.dogfight_focus = true`: the app boots into the dogfight (only as the real start scene; tests and `--tycoon` keep the old screens); the end popup says FLY AGAIN and restarts the dogfight.
 - Tests: dogfight 273 (FLY AGAIN restarts; focus off still returns to the tycoon; portrait hidden).
 
+## Slice 16u: ring course highways (2026-11-28)
+T: "Speed it up + ring course highways".
+- Every course the game spawns is a highway: it points at another zone (`DfRings.highway`, `target`, `target_zone`). Radio: "HIGHWAY to <zone>: <course> ahead".
+- Clearing it: a 1 s top-speed launch toward that zone (`DfGame.HIGHWAY_LAUNCH`), counted as top speed, so the boost hold carries you on. Demo / test courses with a fixed kind stay plain.
+- Tests: dogfight 276 (+3).
+

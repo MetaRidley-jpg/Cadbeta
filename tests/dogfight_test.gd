@@ -1139,5 +1139,31 @@ func _ready() -> void:
 	check(absf(df.status_bars.ghost - df.status_bars.hull) < 0.01, "then the ghost drains to the hull")
 	df.stop()
 
+	# ---------------- slice 16u: ring course highways
+	df.start(31)
+	df.set_process(false)
+	df.state = "wave"
+	df.enemies.clear()
+	df.player.position = Vector3(0, 150, 300)
+	var hw_ok := 0
+	var hw_zones := {}
+	for k in 12:
+		df.rings.spawn(df.player.position, df.player.forward())
+		var hw_dir: Vector3 = df.rings.target - df.player.position
+		hw_dir.y = 0.0
+		if df.rings.target != Vector3.INF and df.rings.target_zone != 0 and df.rings.axis.dot(hw_dir.normalized()) > 0.85:
+			hw_ok += 1
+		hw_zones[df.rings.target_zone] = true
+	check(hw_ok == 12 and hw_zones.size() == 3, "game courses are highways: each points at another zone (%d/12, %d zones)" % [hw_ok, hw_zones.size()])
+	df.rings.spawn(df.player.position, df.player.forward())
+	var hw_t: Vector3 = df.rings.target
+	df._ring_launch(true)
+	var hw_to: Vector3 = hw_t - df.player.position
+	hw_to.y = 0.0
+	check(df.player.launch_t > 0.9 and df.player.launch_dir.dot(hw_to.normalized()) > 0.95 and df.player.launch_speed >= DfPlane.BOOST_STAGE_SPEED[3] - 0.1, "clearing a highway launches you toward its zone at top speed")
+	df.rings.spawn(df.player.position, df.player.forward(), "slalom")
+	check(df.rings.target == Vector3.INF, "a fixed course (demos, tests) is a plain course")
+	df.stop()
+
 	print("DOGFIGHT TESTS: %d passed, %d failed" % [passes, fails])
 	get_tree().quit(1 if fails > 0 else 0)

@@ -63,6 +63,12 @@ var rng := RandomNumberGenerator.new()
 var _ground: Callable            # func(p: Vector3) -> float
 
 var _spires: Array = []          # world.spires: {pos, radius, height, alive}
+## Highways (slice 16u, T: "ring course highways"): when `highway` is set (the game sets it),
+## every course the game spawns points at ANOTHER zone; `target` = that zone's centre, or
+## Vector3.INF for a plain course. Clearing it launches you there (DfGame._ring_launch).
+var highway := false
+var target := Vector3.INF
+var target_zone := -1
 
 func setup(ground_y: Callable, seed_value: int, spires: Array = []) -> void:
 	_ground = ground_y
@@ -80,6 +86,15 @@ func active() -> bool:
 func spawn(pos: Vector3, fwd: Vector3, kind_override := "") -> void:
 	var pool: Array = KINDS.filter(func(k): return k != kind)
 	kind = kind_override if kind_override != "" else pool[rng.randi_range(0, pool.size() - 1)]
+	target = Vector3.INF
+	target_zone = -1
+	if highway and kind_override == "":
+		var here := DfWorld.zone_of(pos)
+		var others: Array = [0, 1, 2, 3].filter(func(z): return z != here)
+		target_zone = others[rng.randi_range(0, others.size() - 1)]
+		var zc := DfWorld.zone_origin(target_zone) + Vector2(DfWorld.QUAD, DfWorld.QUAD) * 0.5
+		target = Vector3(zc.x, 0.0, zc.y)
+		fwd = target - Vector3(pos.x, 0.0, pos.z)     # the course points down the route
 	var base := Vector3(fwd.x, 0.0, fwd.z)
 	if base.length() < 0.1:
 		base = Vector3.FORWARD
@@ -93,7 +108,7 @@ func spawn(pos: Vector3, fwd: Vector3, kind_override := "") -> void:
 	var home := DfWorld.center() - Vector3(pos.x, 0.0, pos.z)
 	for k in 12:
 		var ax: Vector3
-		if k < 4:
+		if k < 4 or target != Vector3.INF:          # a highway keeps close to its route
 			ax = base.rotated(Vector3.UP, rng.randf_range(-0.5, 0.5))
 		elif k < 8:
 			ax = base.rotated(Vector3.UP, rng.randf_range(-1.6, 1.6))

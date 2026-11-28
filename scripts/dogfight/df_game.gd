@@ -283,6 +283,7 @@ func start(seed_value := -1) -> void:
 	weather = DfWeather.new()
 	weather.setup(world)
 	rings.setup(func(p: Vector3) -> float: return world.ground_y(p), (seed_value if seed_value >= 0 else rng.randi()) + 77, world.spires)
+	rings.highway = true            # slice 16u: courses are highways between zones (demos override the kind: plain)
 	cyan_laser = false
 	chain_preview = []
 	zaps = []
@@ -371,6 +372,7 @@ func _process(delta: float) -> void:
 		_slowmo_until = 0
 
 var _radio_zone := -1
+var _radio_course := Vector3.INF
 func sim_step(dt: float) -> void:
 	sim_time += dt
 	if demo == "" and state in ["wave", "break"]:       # radio: zone changes (T: the text box carries the dogfight)
@@ -483,6 +485,10 @@ func _player_step(dt: float) -> void:
 		if rings.tick(dt, player.position, player.forward()) == "fail":
 			_show_msg("RINGS RESET", 1.2, "Too slow: start again from ring 1")
 			Sfx.play("lose", -8.0, 0.0)
+		if rings.active() and rings.origin != _radio_course:
+			_radio_course = rings.origin
+			if rings.target != Vector3.INF:
+				Game.radio_say("HIGHWAY to %s: %s ahead. Clear it for a launch." % [DfWorld.ZONE_NAMES[rings.target_zone], DfRings.TITLES[rings.kind]])
 	if rings.active() and rings.crossed(prev, player.position):
 		var done := rings.pass_ring()
 		player.boost = minf(100.0, player.boost + BOOST_HOOP)
@@ -1420,7 +1426,16 @@ func laser_point(b: Dictionary, u: float) -> Vector3:
 static func course_gap(w: int) -> float:
 	return DfRings.RESPAWN if w <= 3 else minf(40.0, DfRings.RESPAWN + (w - 3) * 7.0)
 
+const HIGHWAY_LAUNCH := 1.0        # s at top speed toward the target zone after a highway course
 func _ring_launch(done: bool) -> void:
+	if done and rings.target != Vector3.INF:
+		var hd := rings.target - player.position
+		hd = Vector3(hd.x, 0.0, hd.z).normalized() + Vector3.UP * 0.05
+		var top: float = DfPlane.BOOST_STAGE_SPEED[3]
+		player.launch(safe_launch_dir(player.position, hd, top, HIGHWAY_LAUNCH), HIGHWAY_LAUNCH, top)
+		player.drift_boost_t = maxf(player.drift_boost_t, HIGHWAY_LAUNCH)   # counts as top speed: flame, lines, then the boost hold
+		Game.radio_say("HIGHWAY LAUNCH: next stop %s." % DfWorld.ZONE_NAMES[rings.target_zone])
+		return
 	if done or rings.next >= rings.rings.size():
 		var f := player.forward()
 		if f.y < 0.0:                # the last loop-wheel ring points down: throw ahead, not at the sea

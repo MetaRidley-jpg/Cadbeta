@@ -7,8 +7,8 @@ T's answers: 3 themed biomes · fights follow you · edge: "Dragon ball arena ga
 | Slice | Contents | State |
 |---|---|---|
 | 16t | 4600 m square arena (4 quadrants), glide wall + grid, scenery culling, +30% tempo, fights follow you | ✅ |
-| 16u | Ring course highways between zones | next |
-| 16v | Alien hive zone (zone 1, NE): terrain, hydra plants, gatling cliffs, valley cannons, swarms | |
+| 16u | Ring course highways between zones | ✅ |
+| 16v | Alien hive zone (zone 1, NE): terrain, hydra plants, gatling cliffs, valley cannons, swarms | next |
 | 16w | Queen boss: hatches, 3 mouths, 3 sweeping red-pink lasers, spinning triangle | |
 | 16x | Seed (laser opens it) → hex portal (mint/blue, grey frame) → on-rails bonus stage engine + first stage, Marrow reward | |
 | later | Bonus stage per zone; zones 3 + 4 | |
