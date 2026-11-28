@@ -400,3 +400,9 @@ T: "StarCraft style aliens with Gatling guns in cliffs, and cannons in valleys a
 - Placeholder sprites (code pixel models, baked): alien cliff, gatling, cannon, hydra, drone. 18 baked atlases.
 - Tests: dogfight 287 (+11).
 
+## Pixel blade demo (2026-11-28)
+T: "Demo on the blade image translated to pixel art first in style" / "Yes but the colors aren't there" / "It looks good note the panel on the sword is the hex panel".
+- `tools/blade/make_blade.py` → `art/blade/blade.png` (183 x 26). Back edge fitted as a line, cutting edge as a curve, tip closed to a point. Colours sampled from T's painting, in 3 hard steps along the blade. Hilt hand-placed; the collar is T's hex panel at 9 x 9 px.
+- First pass was white with thin neon lines: T: "the colors aren't there". Fixed by sampling his pastels.
+- Shimmer demo (scratch GIF): a 2-step light band runs hilt -> tip, then a ready pulse. Not in the game yet.
+
