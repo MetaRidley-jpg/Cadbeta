@@ -11,7 +11,7 @@ T's answers: 3 themed biomes · fights follow you · edge: "Dragon ball arena ga
 | 16v | Alien hive zone (zone 1, NE): terrain, hydra plants, gatling cliffs, valley cannons, swarms | ✅ |
 | 16w | Queen boss: hatches, 3 mouths, 3 sweeping red-pink lasers, spinning triangle | next |
 | 16x | Seed (laser opens it) → hex portal (mint/blue, grey frame) → on-rails bonus stage engine + first stage, Marrow reward | |
-| later | Bonus stage per zone; zones 3 + 4. T (2026-11-28): the domed saucer on a cliff with a ladder (`art/ref/t_dome_sketch.jpg`) is for **zone 3** | |
+| later | Bonus stage per zone; zones 3 + 4. T (2026-11-28): the domed saucer ship (`art/ref/t_dome_sketch.jpg`) is for **zone 3**. It lands on a cliff and shoots a FLAT STAIRWAY down out of the ship on landing (not a ladder) | |
 
 ## Slice 16t (built)
 - **Arena:** `DfWorld.ARENA_MIN/MAX` = (-1150,-1150)..(3450,3450). Zone 0 = the old islands (same coordinates), 1 = NE, 2 = SW, 3 = SE (`zone_of`, `ZONE_NAMES`). Each new zone has up to 5 placeholder islands. Map texture 1280 px x 4 m.
