@@ -1,16 +1,19 @@
 extends Control
 ## Multi-touch flight controls. Left side: floating stick (drag up = climb).
-## Right side: BOOST (hold), DRIFT (hold), BOMB (tap), LASER (tap when charged + locked).
+## Right side: BOOST (hold), DRIFT (hold), SPIN (tap: barrel roll), LASER (tap when charged + locked).
+## T (2026-11-28): "replace bomb button with spin". The bomb is disconnected from touch, not
+## deleted (keyboard B still drops one; bomb_queued stays for that path).
 ## PC: mouse works the same (touch emulation). Keyboard handled in df_game.gd.
 
 const STICK_RADIUS := 95.0
-const BUTTON_R := {"boost": 62.0, "drift": 50.0, "bomb": 44.0, "laser": 46.0}
+const BUTTON_R := {"boost": 62.0, "drift": 50.0, "spin": 44.0, "laser": 46.0}
 
 var turn := 0.0
 var pitch := 0.0
 var boost := false
 var drift := false
 var bomb_queued := false
+var spin_lit := 0.0             # SPIN button glow after a tap (set by DfGame)
 var laser_queued := false
 var roll_queued := false    # double-tap the stick = barrel roll
 var _last_stick_up := -10.0
@@ -32,7 +35,7 @@ func button_centers() -> Dictionary:
 	return {
 		"boost": Vector2(s.x - 92.0, s.y - 110.0),
 		"drift": Vector2(s.x - 228.0, s.y - 82.0),
-		"bomb": Vector2(s.x - 92.0, s.y - 250.0),
+		"spin": Vector2(s.x - 92.0, s.y - 250.0),
 		"laser": Vector2(s.x - 228.0, s.y - 214.0),
 	}
 
@@ -69,8 +72,8 @@ func _input(e: InputEvent) -> void:
 					boost = true
 				"drift":
 					drift = true
-				"bomb":
-					bomb_queued = true
+				"spin":
+					roll_queued = true          # barrel roll (dodges bullets and the Queen's pellets)
 				"laser":
 					laser_queued = true
 			get_viewport().set_input_as_handled()
@@ -124,11 +127,11 @@ func _draw() -> void:
 		var c := Vector2(size.x * 0.25, size.y - 120.0)
 		draw_arc(c, STICK_RADIUS, 0, TAU, 40, dim, 2.0)
 		draw_string(font, c + Vector2(-70, 6), "DRAG TO STEER", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, dim)
-		draw_string(font, c + Vector2(-70, 28), "DOUBLE-TAP: ROLL", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, dim)
+		draw_string(font, c + Vector2(-70, 28), "DOUBLE-TAP: SPIN", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, dim)
 	var bc := button_centers()
-	var cols := {"boost": Color("f26a1b"), "drift": Color("43c6b8"), "bomb": Color("efe6d2"), "laser": Color("39f3ff") if laser_cyan else Color("ff1f4b")}
+	var cols := {"boost": Color("f26a1b"), "drift": Color("43c6b8"), "spin": Color("b48cff"), "laser": Color("39f3ff") if laser_cyan else Color("ff1f4b")}
 	var ready := laser_charge >= 1.0
-	var on := {"boost": boost, "drift": drift, "bomb": bomb_queued, "laser": ready and laser_locked}
+	var on := {"boost": boost, "drift": drift, "spin": spin_lit > 0.0, "laser": ready and laser_locked}
 	for k in bc:
 		var col: Color = cols[k]
 		draw_circle(bc[k], BUTTON_R[k], Color(col, 0.55 if on[k] else 0.22))

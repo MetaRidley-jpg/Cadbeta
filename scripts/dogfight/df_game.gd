@@ -403,13 +403,24 @@ const QUEEN_ALT := 150.0
 const QUEEN_BOB := 45.0
 const QUEEN_SPIN := 0.32           # rad/s: a beam sweeps a full circle in ~20 s
 const QUEEN_MOUTH := 26.0          # m from her centre to each mouth
-const QUEEN_CHARGE := 1.4
-const QUEEN_FIRE := 3.2
-const QUEEN_REST := 2.2
-const QUEEN_BEAM_LEN := 1300.0
-const QUEEN_BEAM_W := 9.0          # m half thickness
-const QUEEN_BEAM_DMG := 16.0       # per tick
+## T: "big laser beams. 3 that don't lock on but have massive width height and range. When it
+## is charging she spins the opposite direction and flings spinning pellets at you" / "she
+## spins when she spots them": dormant until you are within QUEEN_SPOT, again past QUEEN_LOSE.
+const QUEEN_SPOT := 1600.0
+const QUEEN_LOSE := 2200.0
+const QUEEN_CHARGE := 2.4
+const QUEEN_FIRE := 3.4
+const QUEEN_REST := 1.8
+const QUEEN_SPIN_REV := 0.9        # rad/s, the other way, while charging
+const QUEEN_BEAM_LEN := 2200.0
+const QUEEN_BEAM_W := 35.0         # m half width (a 70 m wide slab)
+const QUEEN_BEAM_H := 28.0         # m half height (56 m tall)
+const QUEEN_BEAM_DMG := 18.0       # per tick
 const QUEEN_BEAM_TICK := 0.3
+const PELLET_GAP := 0.12           # s between pellets while charging
+const PELLET_SPEED := 230.0 * DfPlane.SPEED_K
+const PELLET_DMG := 5.0
+const PELLET_SPREAD := 0.09        # rad
 const QUEEN_SCORE := 2500.0
 var queen: DfPlane = null
 var queen_done := false
@@ -420,7 +431,7 @@ func _queen_hatch() -> void:
 	queen = DfPlane.new()
 	queen.setup("queen", world.mound.pos + Vector3.UP * float(world.mound.height), 0.0)
 	enemies.append(queen)
-	queen_st = {"t": 0.0, "phase": "rise", "phase_t": 0.0, "ang": 0.0, "hit_cd": 0.0}
+	queen_st = {"t": 0.0, "phase": "rise", "phase_t": 0.0, "ang": 0.0, "hit_cd": 0.0, "pellet_cd": 0.0, "mouth": 0}
 	fx.explosion(queen.position, 2.6)
 	_shake = maxf(_shake, 1.0)
 	Sfx.play("explosion_big", -4.0, 0.0)
@@ -454,11 +465,35 @@ func _queen_step(e: DfPlane, dt: float) -> void:
 		var u := clampf(float(st.phase_t) / QUEEN_RISE, 0.0, 1.0)
 		e.position = base.lerp(Vector3(base.x, QUEEN_ALT, base.z), u * u * (3.0 - 2.0 * u))
 		if u >= 1.0:
-			st.phase = "rest"
+			st.phase = "dormant"                             # waits until she spots you
 			st.phase_t = 0.0
 		return
 	e.position = Vector3(base.x, QUEEN_ALT + sin(float(st.t) * 0.45) * QUEEN_BOB, base.z)
-	st.ang = float(st.ang) + QUEEN_SPIN * dt
+	var pd := Vector2(player.position.x - base.x, player.position.z - base.z).length()
+	if st.phase == "dormant":
+		e.yaw = -float(st.ang)
+		if pd < QUEEN_SPOT and player.alive:
+			st.phase = "rest"; st.phase_t = 0.0
+			Game.radio_say("She has spotted you. Here come the beams!")
+			Sfx.play("warning", -4.0, 0.0)
+		return
+	if pd > QUEEN_LOSE:
+		st.phase = "dormant"; st.phase_t = 0.0
+		return
+	if st.phase == "charge":
+		st.ang = float(st.ang) - QUEEN_SPIN_REV * dt          # winds up the other way ...
+		st.pellet_cd = float(st.pellet_cd) - dt
+		if float(st.pellet_cd) <= 0.0 and state == "wave":
+			st.pellet_cd = PELLET_GAP
+			st.mouth = (int(st.mouth) + 1) % 3
+			var mo: Array = queen_mouths()[int(st.mouth)]
+			var from: Vector3 = mo[0]
+			var lead: Vector3 = player.position + player.vel * (from.distance_to(player.position) / PELLET_SPEED)
+			var dir := (lead - from).normalized().rotated(Vector3.UP, rng.randf_range(-PELLET_SPREAD, PELLET_SPREAD))
+			dir = dir.rotated(dir.cross(Vector3.UP).normalized(), rng.randf_range(-PELLET_SPREAD, PELLET_SPREAD) * 0.6)
+			projectiles.append({"p": from, "v": dir * PELLET_SPEED, "life": 4.0, "kind": "pellet", "dmg": PELLET_DMG, "spin": rng.randf() * TAU})
+	else:
+		st.ang = float(st.ang) + QUEEN_SPIN * dt              # ... then the beams sweep forward
 	e.yaw = -float(st.ang)
 	match String(st.phase):
 		"rest":
@@ -477,15 +512,18 @@ func _queen_step(e: DfPlane, dt: float) -> void:
 				_red_flash = maxf(_red_flash, 0.6)
 				_hit_player(QUEEN_BEAM_DMG, false)
 
-## Is point p (radius r) inside one of the 3 beams?
+## Is point p (radius r) inside one of the 3 beams? A beam is a flat slab: QUEEN_BEAM_W to
+## each side, QUEEN_BEAM_H up and down, QUEEN_BEAM_LEN out from the mouth.
 func _queen_beam_hits(p: Vector3, r: float) -> bool:
 	for m in queen_mouths():
 		var a: Vector3 = m[0]
 		var d: Vector3 = m[1]
-		var t := (p - a).dot(d)
+		var rel := p - a
+		var t := rel.dot(d)
 		if t < 0.0 or t > QUEEN_BEAM_LEN:
 			continue
-		if (a + d * t).distance_to(p) < QUEEN_BEAM_W + r:
+		var side := Vector3(-d.z, 0.0, d.x)
+		if absf(rel.dot(side)) < QUEEN_BEAM_W + r and absf(rel.y) < QUEEN_BEAM_H + r:
 			return true
 	return false
 
@@ -1357,6 +1395,8 @@ func _read_inputs() -> void:
 	if controls.roll_queued:
 		controls.roll_queued = false
 		player.roll_in = -1 if player.turn < -0.15 else 1
+		controls.spin_lit = 0.25
+	controls.spin_lit = maxf(0.0, controls.spin_lit - get_process_delta_time())
 	player.boost_in = controls.boost or Input.is_key_pressed(KEY_SHIFT) or force_boost
 	player.drift = controls.drift or Input.is_key_pressed(KEY_SPACE)
 
@@ -2060,6 +2100,11 @@ func _projectiles_step(dt: float) -> void:
 				if state != "crash" and _seg_hit(a, b, player.position, player.radius):
 					_hit_player(pr.dmg)
 					gone = not player.rolling()      # a roll lets the bolt fly past
+			"pellet":                            # the Queen's spinning pellets (a roll dodges them too)
+				pr.spin = float(pr.get("spin", 0.0)) + 14.0 * dt
+				if state != "crash" and _seg_hit(a, b, player.position, player.radius + 2.0):
+					_hit_player(pr.dmg)
+					gone = not player.rolling()
 			"flak":
 				if pr.life <= 0.0:
 					fx.flak_burst(b)
@@ -2091,7 +2136,7 @@ func _projectiles_step(dt: float) -> void:
 					gone = true
 		if not gone and pr.life <= 0.0:
 			gone = true
-		if not gone and (pr.kind == "bullet" or pr.kind == "enemy_bullet") and b.y < world.ground_y(b):
+		if not gone and (pr.kind == "bullet" or pr.kind == "enemy_bullet" or pr.kind == "pellet") and b.y < world.ground_y(b):
 			if world.ground_y(b) <= 0.0:
 				fx.puff(Vector3(b.x, 0.5, b.z), Color(0.9, 0.97, 1, 0.8), 1.0, 2.0, 0.3)
 			gone = true

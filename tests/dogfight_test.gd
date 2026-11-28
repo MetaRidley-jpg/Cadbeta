@@ -1244,14 +1244,43 @@ func _ready() -> void:
 	for k in int((df.QUEEN_RISE + 0.5) * 30.0):
 		df._queen_step(df.queen, 1.0 / 30.0)
 	check(absf(df.queen.position.y - df.QUEEN_ALT) <= df.QUEEN_BOB + 1.0, "she rises to her hover height (%.0f m)" % df.queen.position.y)
+	# dormant until she spots you; then spin forward; charging = the other way + pellets
+	df.player.position = df.world.mound.pos + Vector3(0, 250, 2500)
 	var q_ang0: float = df.queen_st.ang
-	for k in 60:
+	for k in 30:
 		df._queen_step(df.queen, 1.0 / 30.0)
-	check(float(df.queen_st.ang) - q_ang0 > 0.5, "she spins (the beams sweep)")
-	# a beam: a point in front of a mouth at beam height is hit; 40 m above it is not
+	check(df.queen_st.phase == "dormant" and float(df.queen_st.ang) == q_ang0, "she is dormant when you are far (2.5 km)")
+	df.player.position = df.world.mound.pos + Vector3(0, 250, 900)
+	df._queen_step(df.queen, 1.0 / 30.0)
+	check(df.queen_st.phase == "rest", "she spots you at 900 m")
+	var q_a1: float = df.queen_st.ang
+	for k in 30:
+		df._queen_step(df.queen, 1.0 / 30.0)
+	check(float(df.queen_st.ang) > q_a1, "then she spins (forward)")
+	df.state = "wave"
+	df.projectiles.clear()
+	df.queen_st.phase = "charge"
+	df.queen_st.phase_t = 0.0
+	var q_a2: float = df.queen_st.ang
+	for k in 30:
+		df._queen_step(df.queen, 1.0 / 30.0)
+	var q_pel := 0
+	for pr in df.projectiles:
+		if pr.kind == "pellet":
+			q_pel += 1
+	check(float(df.queen_st.ang) < q_a2 and q_pel >= 5, "charging: she spins the other way and flings pellets (%d in 1 s)" % q_pel)
+	# a pellet on the player hurts; a roll dodges it
+	df.player.shield = 0.0
+	df.player.hp = df.player.max_hp
+	df.projectiles = [{"p": df.player.position + Vector3(0, 0, -6), "v": Vector3(0, 0, 400), "life": 1.0, "kind": "pellet", "dmg": df.PELLET_DMG, "spin": 0.0}]
+	df._projectiles_step(1.0 / 30.0)
+	check(df.player.hp < df.player.max_hp, "a pellet hits")
+	# the beams: a 70 m wide, 56 m tall slab, 2.2 km long
 	var q_m: Array = df.queen_mouths()[0]
-	var q_in: Vector3 = q_m[0] + q_m[1] * 400.0
-	check(df._queen_beam_hits(q_in, 7.0) and not df._queen_beam_hits(q_in + Vector3.UP * 40.0, 7.0), "a beam hits in its plane, misses 40 m above")
+	var q_side := Vector3(-q_m[1].z, 0.0, q_m[1].x)
+	var q_in: Vector3 = q_m[0] + q_m[1] * 1800.0 + q_side * 30.0 + Vector3.UP * 20.0
+	check(df._queen_beam_hits(q_in, 0.0), "a beam is massive: hit 1.8 km out, 30 m to the side, 20 m up")
+	check(not df._queen_beam_hits(q_m[0] + q_m[1] * 500.0 + Vector3.UP * 45.0, 7.0), "a beam misses 45 m above its centre (dodge by height)")
 	# a firing beam that holds the player loses hull over time
 	df.state = "wave"                 # the sim steps above may have moved the wave on
 	df.queen_st.phase = "fire"
@@ -1273,6 +1302,15 @@ func _ready() -> void:
 	check(df.queen_done and df.queen == null and df.score >= q_score + df.QUEEN_SCORE, "QUEEN DOWN pays %d" % int(df.QUEEN_SCORE))
 	df.sim_step(1.0 / 30.0)
 	check(df.queen == null, "she hatches only once per match")
+	# T: "replace bomb button with spin": SPIN = barrel roll; no BOMB touch button
+	var sp_bc: Dictionary = df.controls.button_centers()
+	check(sp_bc.has("spin") and not sp_bc.has("bomb") and df.controls._role_at(sp_bc.spin) == "spin", "the SPIN button replaces BOMB")
+	df.player.roll_t = 0.0
+	df.player.roll_cd = 0.0
+	df.controls.roll_queued = true
+	df._read_inputs()
+	df.player.step(1.0 / 30.0)
+	check(df.player.rolling(), "a SPIN tap starts a barrel roll")
 	# hive kamikazes wear the alien skin
 	df.player.position = Vector3(2600, 150, -400)
 	df.enemies.clear()

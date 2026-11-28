@@ -783,15 +783,14 @@ func _draw_queen_beam(ci: CanvasItem, pa: Vector3, pb: Vector3, charging: bool) 
 			ci.draw_line(a, b, Color(1.0, 0.3, 0.6, 0.8 * _light_fade(pa.z)), 1.0)
 		return
 	var n := (b - a).orthogonal().normalized()
-	var wa := focal / pa.z * 9.0
-	var wb := focal / pb.z * 9.0
+	var wa := focal / pa.z * 35.0          # the beam's half width (DfGame.QUEEN_BEAM_W): a massive slab
+	var wb := focal / pb.z * 35.0
 	var lf := _light_fade(pa.z)
 	for L in [[2.0, Color(0.9, 0.1, 0.35, 0.35)], [1.2, Color(1.0, 0.25, 0.55, 0.8)], [0.6, Color(1.0, 0.6, 0.8, 0.95)], [0.25, Color(1.0, 0.95, 0.97, 1.0)]]:
 		var k: float = L[0] * (0.9 + 0.1 * sin(_t * 41.0))
 		var c: Color = L[1]
 		c.a *= lf
 		ci.draw_primitive(PackedVector2Array([a + n * wa * k, b + n * wb * k, b - n * wb * k, a - n * wa * k]), PackedColorArray([c, c, c, c]), PackedVector2Array())
-	_halo(ci, a, wa * 3.0, Color(1.0, 0.3, 0.6, lf))
 
 # ------------------------------------------------------------------ asteroid
 ## The impact shockwave: a white foam ring racing out over the water with an orange fire
@@ -1565,7 +1564,16 @@ func _draw_projectile(ci: CanvasItem, pr: Dictionary, a: Vector3) -> void:
 			_halo(ci, at, size * 2.0, Color(DfPal.FLAK, lf))
 		"lava":
 			_halo(ci, at, maxf(2.0, focal / a.z * 5.0), Color(1.0, 0.45, 0.1, lf))
+		"pellet":
+			_halo(ci, at, maxf(3.0, focal / a.z * 4.0), Color(1.0, 0.3, 0.6, lf))
 	match pr.kind:
+		"pellet":   # the Queen's spinning pellet: a 4-point pink star that turns
+			var ps := clampf(focal / a.z * 3.0, 2.0, 9.0)
+			var sa: float = pr.get("spin", 0.0)
+			for k in 2:
+				var dd := Vector2(cos(sa + k * PI * 0.5), sin(sa + k * PI * 0.5)) * ps
+				ci.draw_line((at - dd).round(), (at + dd).round(), Color("ff4f9e"), maxf(1.0, ps * 0.45))
+			ci.draw_rect(Rect2(at - Vector2.ONE, Vector2(2, 2)), Color("ffe0ef"))
 		"bullet":   # T's bolt: pale capsule with a red outline
 			var b3 := project(pr.p - (pr.v as Vector3) * 0.03)
 			var b := at if b3.z <= 0.0 else Vector2(b3.x, b3.y).round()

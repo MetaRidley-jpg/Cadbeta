@@ -416,3 +416,11 @@ T: "Instead of volcano the queen hatches and shoots 3 rotating red pink lasers t
 - Placeholder sprites: queen, alien kamikaze, mound, egg (22 baked atlases). Demo `--dfdemo=queen` (flybys above beam height).
 - Tests: dogfight 298 (+11).
 
+### 16w part 2: massive beams, reverse-spin pellets, spotting, SPIN button
+T: "She needs the beams, like big laser beams. 3 that don't lock on but have massive width height and range. When it is charging she spins the opposite direction and flings spinning pellets at you" / "And she spins when she spots them" / "Also replace bomb button with spin".
+- Beams: flat slabs 70 m wide x 56 m tall x 2.2 km (`QUEEN_BEAM_W/H/LEN`), no lock-on (they only follow her spin). Drawn as hard pink layers; the per-piece fog halo was removed (it stacked into a soft pink wash).
+- Charge (2.4 s): she spins the other way (`QUEEN_SPIN_REV`) and flings spinning pink star pellets from her mouths every 0.12 s (`PELLET_*`, a roll dodges them).
+- Spotting: after hatching she is dormant until you are within 1.6 km (`QUEEN_SPOT`), dormant again past 2.2 km (`QUEEN_LOSE`). Radio: "She has spotted you".
+- SPIN touch button (purple) replaces BOMB: a tap = barrel roll toward your steering side. The bomb is disconnected from touch (keyboard B still works), not deleted.
+- Tests: dogfight 305.
+
