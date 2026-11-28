@@ -41,7 +41,7 @@ Read this first. Then `docs/build-log.md` (what was built, slice by slice) and `
 **One command: `bash tools/run_tests.sh`** — runs all 8 suites in parallel (~20 s), prints a PASS/FAIL table, exits 1 on any failure. Logs: `build/test-logs/<name>.log`. Pick suites: `bash tools/run_tests.sh rules df`. CI gate only: `CI=1 bash tools/run_tests.sh`. Timings: `SERIAL=1`. A broken suite is killed after 120 s.
 
 Suites (name: scene, about how many checks). A pass prints `N passed, 0 failed` (ui: `ALL PASSED`).
-`rules` test_runner 366 · `df` dogfight_test 287 · `touch` touch_test 25 · `ui` ui_smoke · `cards` cards_test 57 · `pool` pool_test 19 · `chal` challenges_test 116 · `holdem` holdem_test about 52-55 (random hands gate some checks, so the count moves).
+`rules` test_runner 366 · `df` dogfight_test 298 · `touch` touch_test 25 · `ui` ui_smoke · `cards` cards_test 57 · `pool` pool_test 19 · `chal` challenges_test 116 · `holdem` holdem_test about 52-55 (random hands gate some checks, so the count moves).
 - To add a suite: add one line to `SUITES` in `tools/run_tests.sh`.
 - cards_test prints one harmless "Drawing is only allowed inside _draw" error: the test times `_draw_room()` directly.
 - One suite by hand: `godot --headless --path . res://tests/<scene>.tscn --quit-after 30000 -- --fresh`.
@@ -54,7 +54,7 @@ xvfb-run -a -s "-screen 0 1280x1400x24" godot --path . --rendering-method gl_com
 Frames come out 540x960. GIF: `bash tools/record_demo.sh NAME FRAMES ARGS` (prefix `xvfb-run -a`). A `.avi` output records sound too. Add `--phone` to get the phone layout on desktop.
 
 Useful ARGS:
-- Dogfight: `--dfyaw=DEG` (heading), `--dfat=x,y,z`. `--dogfight --dfwave=N --dfgod --dfdemo=NAME`. Demos: `kami loop roll half immelmann fog beach rings[_slalom|_corkscrew|_loop|_stairs|_figure8|_bigloop|_helix] ringsreplay[_kind] boss bossko asteroid koi volcano ko`. Also `--dfcrashat=7`, `--dfsim=3`, `--dfhold`, `--dforbit=165`. Demos keep the fixed weather order; real play rolls weather per wave.
+- Dogfight: `--dfyaw=DEG` (heading), `--dfat=x,y,z`. `--dogfight --dfwave=N --dfgod --dfdemo=NAME`. Demos: `kami loop roll half immelmann fog beach rings[_slalom|_corkscrew|_loop|_stairs|_figure8|_bigloop|_helix] ringsreplay[_kind] queen boss bossko asteroid koi volcano ko`. Also `--dfcrashat=7`, `--dfsim=3`, `--dfhold`, `--dforbit=165`. Demos keep the fixed weather order; real play rolls weather per wave.
 - HUD: `--dfhurt=hp,shield` (T's bar states).
 - UI: `--tab=N`, `--playopts`, `--fever`, `--marrow=N`, `--memlog` (MEM lines), `--phone`.
 - Cards: `--holdem --hebuy=5 --heauto --fast`, `--cards --bjauto`.
@@ -88,5 +88,5 @@ Useful ARGS:
 ## Open work (see docs/todo.md)
 - T phone-tests rings / cyan laser / course gap (slice 16p).
 - Dogfight frame cost: fixed in slice 16r (sprites() cache + baked atlases). T phone-tests with `?prof`. Koi draw is the top cost now.
-- 4x world: `docs/world-4x.md` (16w Queen next). T reference art: `art/ref/` (ignored by Godot and the export).
+- 4x world: `docs/world-4x.md` (16x seed + portal + bonus stage next). T reference art: `art/ref/` (ignored by Godot and the export).
 - Enemy AI depth, dogfight-only rewards, more Cadavire in the dogfight, Pinball.

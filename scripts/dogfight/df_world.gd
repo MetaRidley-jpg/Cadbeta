@@ -33,6 +33,8 @@ var cells := {}                        # Vector2i -> {"palms": [i], "spires": [i
 ## cliffs ("alien": true). ground_units: {kind: gatling|cannon|hydra, pos} for DfGame.
 const ALIEN_ZONE := 1
 var ground_units: Array = []
+## Slice 16w: the HATCH MOUND (the hive's volcano). The Queen hatches out of it.
+var mound := {"pos": Vector3(1150.0 + 2300.0 * 0.6, 0.0, -1150.0 + 2300.0 * 0.42), "radius": 130.0, "height": 70.0}
 var islands: Array = []                # {pos: Vector3, radius}
 var spires: Array = []                 # {pos: Vector3, radius, height, alive}
 var palms: Array = []                  # {pos: Vector3, alive, yaw (leans out to sea)}
@@ -50,9 +52,10 @@ func build(seed_value := 7) -> void:
 		{"pos": Vector3(-140, 0, -900), "radius": 140.0},
 		{"pos": volcano.pos, "radius": volcano.radius + 40.0},
 	]
+	islands.append({"pos": mound.pos, "radius": 300.0, "zone": ALIEN_ZONE})   # the mound's island
 	for z in range(1, 4):              # placeholder islands in the 3 new quadrants
 		var q0 := zone_origin(z)
-		var placed: Array = []
+		var placed: Array = [islands[islands.size() - 1]] if z == ALIEN_ZONE else []
 		for tries in 40:
 			if placed.size() >= 5:
 				break
@@ -234,6 +237,9 @@ func ground_y(pos: Vector3) -> float:
 		g = volcano.height * (1.0 - dv / volcano.radius)
 		if dv < volcano.radius * 0.16:
 			g = volcano.height * 0.84 * 0.82   # crater bowl
+	var dm := Vector2(pos.x - mound.pos.x, pos.z - mound.pos.z).length()
+	if dm < mound.radius:
+		g = maxf(g, float(mound.height) * (1.0 - dm / float(mound.radius)))
 	var c := cell_of(pos)             # spires (radius <= 24 m) sit in their own cell: 3x3 cells cover them
 	for dz in range(-1, 2):
 		for dx in range(-1, 2):

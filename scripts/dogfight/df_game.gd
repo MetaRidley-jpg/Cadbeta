@@ -318,6 +318,9 @@ func start(seed_value := -1) -> void:
 	enemies.clear()
 	ships.clear()
 	_add_ground_units()
+	queen = null
+	queen_done = false
+	hive_kills = 0
 	projectiles.clear()
 	wave = 0
 	waves_cleared = 0
@@ -386,9 +389,123 @@ func _process(delta: float) -> void:
 		_slowmo_until = 0
 
 var _radio_zone := -1
+# ---------------------------------------------------------------- slice 16w: the hive QUEEN
+## T: "Instead of volcano the queen hatches and shoots 3 rotating red pink lasers that sweep
+## horizontally out of 3 mouths in a triangle spinning shape". She hatches from the mound
+## (QUEEN_TRIGGER_KILLS hive units destroyed, or you fly within QUEEN_TRIGGER_DIST), rises
+## to QUEEN_ALT, spins (QUEEN_SPIN) and bobs (QUEEN_BOB). Cycle: charge (thin aim lines) ->
+## fire (3 flat beams straight out of the mouths; the spin sweeps them) -> rest. Dodge by
+## height (she bobs, so the beam plane moves) or by staying out of a beam's arc.
+const QUEEN_TRIGGER_KILLS := 6
+const QUEEN_TRIGGER_DIST := 350.0
+const QUEEN_RISE := 3.0
+const QUEEN_ALT := 150.0
+const QUEEN_BOB := 45.0
+const QUEEN_SPIN := 0.32           # rad/s: a beam sweeps a full circle in ~20 s
+const QUEEN_MOUTH := 26.0          # m from her centre to each mouth
+const QUEEN_CHARGE := 1.4
+const QUEEN_FIRE := 3.2
+const QUEEN_REST := 2.2
+const QUEEN_BEAM_LEN := 1300.0
+const QUEEN_BEAM_W := 9.0          # m half thickness
+const QUEEN_BEAM_DMG := 16.0       # per tick
+const QUEEN_BEAM_TICK := 0.3
+const QUEEN_SCORE := 2500.0
+var queen: DfPlane = null
+var queen_done := false
+var hive_kills := 0
+var queen_st := {}                 # t, phase, phase_t, ang, hit_cd
+
+func _queen_hatch() -> void:
+	queen = DfPlane.new()
+	queen.setup("queen", world.mound.pos + Vector3.UP * float(world.mound.height), 0.0)
+	enemies.append(queen)
+	queen_st = {"t": 0.0, "phase": "rise", "phase_t": 0.0, "ang": 0.0, "hit_cd": 0.0}
+	fx.explosion(queen.position, 2.6)
+	_shake = maxf(_shake, 1.0)
+	Sfx.play("explosion_big", -4.0, 0.0)
+	_show_msg("THE QUEEN HATCHES!", 2.5, "Dodge the sweeping beams")
+	Game.radio_say("THE QUEEN IS HATCHING. Three beams, they sweep flat: change height!")
+
+## The 3 mouths (world positions) and their outward beam directions (flat).
+func queen_mouths() -> Array:
+	var out: Array = []
+	if queen == null:
+		return out
+	for k in 3:
+		var a: float = float(queen_st.ang) + TAU * k / 3.0
+		var d := Vector3(cos(a), 0.0, sin(a))
+		out.append([queen.position + d * QUEEN_MOUTH + Vector3.UP * 6.0, d])
+	return out
+
+func queen_firing() -> bool:
+	return queen != null and queen.alive and queen_st.get("phase", "") == "fire"
+
+func queen_charging() -> bool:
+	return queen != null and queen.alive and queen_st.get("phase", "") == "charge"
+
+func _queen_step(e: DfPlane, dt: float) -> void:
+	var st := queen_st
+	st.t = float(st.t) + dt
+	st.phase_t = float(st.phase_t) + dt
+	st.hit_cd = maxf(0.0, float(st.hit_cd) - dt)
+	var base: Vector3 = world.mound.pos + Vector3.UP * float(world.mound.height)
+	if st.phase == "rise":
+		var u := clampf(float(st.phase_t) / QUEEN_RISE, 0.0, 1.0)
+		e.position = base.lerp(Vector3(base.x, QUEEN_ALT, base.z), u * u * (3.0 - 2.0 * u))
+		if u >= 1.0:
+			st.phase = "rest"
+			st.phase_t = 0.0
+		return
+	e.position = Vector3(base.x, QUEEN_ALT + sin(float(st.t) * 0.45) * QUEEN_BOB, base.z)
+	st.ang = float(st.ang) + QUEEN_SPIN * dt
+	e.yaw = -float(st.ang)
+	match String(st.phase):
+		"rest":
+			if float(st.phase_t) >= QUEEN_REST:
+				st.phase = "charge"; st.phase_t = 0.0
+				Sfx.play("warning", -6.0, 0.0)
+		"charge":
+			if float(st.phase_t) >= QUEEN_CHARGE:
+				st.phase = "fire"; st.phase_t = 0.0
+				_shake = maxf(_shake, 0.35)
+		"fire":
+			if float(st.phase_t) >= QUEEN_FIRE:
+				st.phase = "rest"; st.phase_t = 0.0
+			elif float(st.hit_cd) <= 0.0 and state == "wave" and _queen_beam_hits(player.position, player.radius):
+				st.hit_cd = QUEEN_BEAM_TICK
+				_red_flash = maxf(_red_flash, 0.6)
+				_hit_player(QUEEN_BEAM_DMG, false)
+
+## Is point p (radius r) inside one of the 3 beams?
+func _queen_beam_hits(p: Vector3, r: float) -> bool:
+	for m in queen_mouths():
+		var a: Vector3 = m[0]
+		var d: Vector3 = m[1]
+		var t := (p - a).dot(d)
+		if t < 0.0 or t > QUEEN_BEAM_LEN:
+			continue
+		if (a + d * t).distance_to(p) < QUEEN_BEAM_W + r:
+			return true
+	return false
+
+func _queen_down(e: DfPlane) -> void:
+	queen_done = true
+	score += QUEEN_SCORE
+	kills += 1
+	fx.explosion(e.position, 3.2)
+	fx.explosion(e.position + Vector3(20, 10, 0), 2.0)
+	_shake = maxf(_shake, 1.2)
+	Sfx.play("explosion_big", -3.0, 0.0)
+	_takedown("QUEEN DOWN!", 600.0)
+	Game.radio_say("QUEEN DOWN. The hive is quiet. +%d" % int(QUEEN_SCORE))
+	queen = null
 var _radio_course := Vector3.INF
 func sim_step(dt: float) -> void:
 	sim_time += dt
+	if (demo == "" or demo == "queen") and state in ["wave", "break"] and queen == null and not queen_done:
+		if hive_kills >= QUEEN_TRIGGER_KILLS or Vector2(player.position.x - world.mound.pos.x, player.position.z - world.mound.pos.z).length() < QUEEN_TRIGGER_DIST:
+			_queen_hatch()
 	if demo == "" and state in ["wave", "break"]:       # radio: zone changes (T: the text box carries the dogfight)
 		var zn := DfWorld.zone_of(player.position)
 		if zn != _radio_zone:
@@ -432,7 +549,7 @@ func sim_step(dt: float) -> void:
 	ast_glance_t = maxf(0.0, ast_glance_t - dt)
 	_shock_step(dt)
 	_debris_step(dt)
-	if state == "wave" and demo != "beach" and not (demo == "rings" and _demo_phase != "chain_done") and enemies.is_empty() and _ships_alive() == 0 and not weather.asteroid_active:
+	if state == "wave" and demo != "beach" and demo != "queen" and not (demo == "rings" and _demo_phase != "chain_done") and enemies.is_empty() and _ships_alive() == 0 and not weather.asteroid_active:
 		_on_wave_clear()
 	_hit_say_cd = maxf(0.0, _hit_say_cd - dt)
 	_low_say_cd = maxf(0.0, _low_say_cd - dt)
@@ -553,6 +670,21 @@ func start_demo(name: String) -> void:
 		return
 	if name == "koi":
 		_start_demo_koi()
+		return
+	if name == "queen":                  # slice 16w: flybys above beam height, she hatches
+		demo = "queen"
+		_demo_t = 0.0
+		_demo_phase = "in"
+		enemies.clear()
+		state = "wave"
+		wave = 1
+		weather.set_preset("morning", true)
+		var mp: Vector3 = world.mound.pos
+		player.position = Vector3(mp.x, QUEEN_ALT + QUEEN_BOB + 70.0, mp.z + 620.0)
+		player.yaw = 0.0
+		player.pitch = -0.1
+		player.vel = player.forward() * player.speed
+		_update_camera(0.0)
 		return
 	if name == "asteroid":
 		_start_demo_asteroid()
@@ -1121,6 +1253,26 @@ func _demo_inputs(dt: float) -> void:
 			player.drift = _demo_t > ASTEROID_WARN + 2.0 and _demo_t < ASTEROID_WARN + 4.0
 			player.pitch_in = clampf((170.0 - player.position.y) * 0.02, -0.25, 0.25)
 		return
+	if demo == "queen":
+		_demo_t += dt
+		player.boost_in = false
+		player.drift = false
+		player.speed_cap = 120.0 * K
+		if _demo_t > 1.0 and queen == null and not queen_done:
+			_queen_hatch()
+		# flybys: dive at her (above beam height), pass over, turn back at 900 m
+		var mp2: Vector3 = world.mound.pos
+		var flat := Vector3(player.position.x - mp2.x, 0.0, player.position.z - mp2.z)
+		if flat.length() > 900.0:
+			_demo_phase = "in"
+		elif flat.length() < 120.0:
+			_demo_phase = "out"
+		var aim := mp2 if _demo_phase != "out" else player.position + player.forward() * 400.0
+		aim.y = QUEEN_ALT + QUEEN_BOB + 70.0
+		var st := player.steer_to(aim, 2.0)
+		player.turn = st.x
+		player.pitch_in = st.y
+		return
 	if demo == "koi":
 		_demo_t += dt
 		player.turn = 0.0
@@ -1387,7 +1539,7 @@ func _laser_step(dt: float) -> void:
 								_rotor_down(e, ri)
 					if boss == null and e.kind == "boss":
 						pass                          # the rotor blast finished it
-					elif e.damage(LASER_BOSS_DMG if e.kind == "boss" else 9999.0):
+					elif e.damage(LASER_BOSS_DMG if (e.kind == "boss" or e.kind == "queen") else 9999.0):
 						_kill_enemy(e, "player")
 					elif e.kind == "boss":
 						_check_phase2()
@@ -1622,7 +1774,7 @@ func _cyan_hit(t: Variant) -> void:
 					_kill_enemy(e, "player")
 				else:
 					_check_phase2()
-		elif e.damage(9999.0):
+		elif e.damage(CYAN_BOSS_DMG if e.kind == "queen" else 9999.0):
 			_kill_enemy(e, "player")
 	else:
 		_damage_ship(t.s, CYAN_SHIP_DMG)
@@ -1665,6 +1817,9 @@ func _enemies_step(dt: float) -> void:
 			continue
 		if e.kind == "boss":
 			_boss_step(e, dt)
+			continue
+		if e.kind == "queen":
+			_queen_step(e, dt)
 			continue
 		if state != "crash":
 			e.ai_think(player, world.ground_y, dt)
@@ -1710,6 +1865,9 @@ func _kill_enemy(e: DfPlane, how: String) -> void:
 	_last_kill = {"t": sim_time, "pos": e.position, "id": e.get_instance_id(), "boss": e.kind == "boss"}
 	if e.kind == "boss":
 		_boss_down(e)
+	if e.kind == "queen":
+		_queen_down(e)
+		return
 	fx.explosion(e.position, 1.0)
 	if e.position.y < 3.0:
 		fx.splash(e.position, 1.4)
@@ -1845,6 +2003,7 @@ func _damage_ship(s: Dictionary, v: float) -> void:
 	s.flash = 0.08
 	if s.hp <= 0.0 and s.get("fixed", false):
 		s.alive = false
+		hive_kills += 1
 		var g: Dictionary = GROUND[s.kind]
 		_last_kill = {"t": sim_time, "pos": s.pos, "id": 0}
 		kills += 1
@@ -2071,6 +2230,9 @@ func _next_wave() -> void:
 	if demo == "" and DfWorld.zone_of(player.position) == DfWorld.ALIEN_ZONE:
 		for k in 1 + wave / 3:                  # the hive answers with swarms
 			_spawn_swarm()
+		for e3 in enemies:                      # hive kamikazes wear the alien skin
+			if e3.kind == "kamikaze":
+				e3.skin = "akami"
 	for k in int(_wave_def.ships):
 		_spawn_ship()
 	state = "wave"

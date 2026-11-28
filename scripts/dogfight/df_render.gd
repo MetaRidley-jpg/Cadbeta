@@ -97,6 +97,8 @@ static func bake_all() -> void:
 	spr["gatling"] = DfSprites.bake_art("gatling", _gatling_model, 16, [8, 25, 50, 80], 1.2)
 	spr["cannon"] = DfSprites.bake_art("cannon", _cannon_model, 16, [8, 25, 50, 80], 1.5)
 	spr["hydra"] = DfSprites.bake_art("hydra", _hydra_model, 16, [8, 25, 50, 80], 1.4)
+	spr["mound"] = DfSprites.bake_art("mound", _mound_model, 1, [2, 12, 25, 45, 75], 4.0)
+	spr["egg"] = DfSprites.bake_art("egg", _egg_model, 1, [2, 12, 25, 45, 75], 2.0)
 	for k in 3:
 		cloud_tex.append(ImageTexture.create_from_image(_cloud_image(k)))
 	for kind in BLAST_PATHS:
@@ -119,7 +121,7 @@ func setup(g: Node) -> void:
 	game = g
 	var pt := Time.get_ticks_usec()
 	bake_all()
-	for k in ["player", "fighter", "kamikaze", "boss", "drone"]:
+	for k in ["player", "fighter", "kamikaze", "boss", "drone", "queen", "akami"]:
 		var pk := Time.get_ticks_usec()
 		DfPlane.sprites_for(k)    # bake now, not on the jet's first frame on screen
 		if DfProf.on:
@@ -770,6 +772,27 @@ func _draw_boss_beam(ci: CanvasItem, pa: Vector3, pb: Vector3, grow: float) -> v
 		if c.a >= 0.9:                                   # round joint: smooth bends in the solid core
 			ci.draw_circle(b, wb * k, c)
 
+## Queen beam piece: red-pink layers, a white-pink core; charging = a thin flickering aim line.
+func _draw_queen_beam(ci: CanvasItem, pa: Vector3, pb: Vector3, charging: bool) -> void:
+	var a := Vector2(pa.x, pa.y)
+	var b := Vector2(pb.x, pb.y)
+	if a.distance_to(b) < 0.5:
+		return
+	if charging:
+		if int(_t * 20.0) % 2 == 0:
+			ci.draw_line(a, b, Color(1.0, 0.3, 0.6, 0.8 * _light_fade(pa.z)), 1.0)
+		return
+	var n := (b - a).orthogonal().normalized()
+	var wa := focal / pa.z * 9.0
+	var wb := focal / pb.z * 9.0
+	var lf := _light_fade(pa.z)
+	for L in [[2.0, Color(0.9, 0.1, 0.35, 0.35)], [1.2, Color(1.0, 0.25, 0.55, 0.8)], [0.6, Color(1.0, 0.6, 0.8, 0.95)], [0.25, Color(1.0, 0.95, 0.97, 1.0)]]:
+		var k: float = L[0] * (0.9 + 0.1 * sin(_t * 41.0))
+		var c: Color = L[1]
+		c.a *= lf
+		ci.draw_primitive(PackedVector2Array([a + n * wa * k, b + n * wb * k, b - n * wb * k, a - n * wa * k]), PackedColorArray([c, c, c, c]), PackedVector2Array())
+	_halo(ci, a, wa * 3.0, Color(1.0, 0.3, 0.6, lf))
+
 # ------------------------------------------------------------------ asteroid
 ## The impact shockwave: a white foam ring racing out over the water with an orange fire
 ## ring inside it and a faint air ring above. Flat on the ground, so it is drawn with the
@@ -1001,6 +1024,21 @@ func _draw_units() -> void:
 	_replay_focus()
 	var amb: Color = game.weather.cur.get("ambient", Color.WHITE)     # scenery takes the weather's daylight
 	_queue_sprite(list, spr.volcano, vp.pos, 0.0, 1.0, 0.0, Color(amb, _replay_occluder_alpha(vp.pos, 190.0, 340.0)))
+	var md: Dictionary = world.mound                                   # slice 16w: the hatch mound + egg
+	_queue_sprite(list, spr.mound, md.pos, 0.0, 1.0, 0.0, amb)
+	if game.queen == null and not game.queen_done:
+		var eg := 1.0 + 0.35 * maxf(0.0, sin(_t * 3.0))                  # the egg pulses (hard 2 levels)
+		_queue_sprite(list, spr.egg, md.pos + Vector3.UP * float(md.height), 0.0, 1.0, 0.0, Color(eg, 1.0, eg) * amb)
+	if game.queen != null and (game.queen_firing() or game.queen_charging()):
+		var chg: bool = game.queen_charging()
+		for m in game.queen_mouths():
+			var a3: Vector3 = m[0]
+			var d3: Vector3 = m[1]
+			for k in 12:                                                     # depth-sorted pieces
+				var pa := project(a3 + d3 * game.QUEEN_BEAM_LEN * k / 12.0)
+				var pb := project(a3 + d3 * game.QUEEN_BEAM_LEN * (k + 1) / 12.0)
+				if pa.z > 1.0 and pb.z > 1.0:
+					list.append([(pa.z + pb.z) * 0.5, "qbeam", pa, pb, chg])
 	# slice 16t: 4x map = 4x scenery. Only grid cells inside the fog and not behind the camera.
 	var cf := Vector2(cam_fwd.x, cam_fwd.z)
 	var reach := fog_end * 1.05 + DfWorld.CELL * 0.75
@@ -1198,6 +1236,8 @@ func _draw_units() -> void:
 				_draw_navlight(ci, it[2], it[3])
 			"trail":
 				ci.draw_line(it[2], it[3], it[4], it[5])
+			"qbeam":
+				_draw_queen_beam(ci, it[2], it[3], it[4])
 			"flame":
 				_draw_flame(ci, it[2])
 			"spark":
@@ -1720,6 +1760,33 @@ static func _hydra_model() -> Dictionary:
 			for dz in range(-1, 2):
 				v[Vector3i(roundi(hc.x) + dx, 11, roundi(hc.y) + dz)] = AL_MID
 		v[Vector3i(roundi(hc.x), 12, roundi(hc.y))] = AL_PINK  # the mouth glow
+	return v
+
+## Hatch mound: a fleshy hive dome with ribs and pink vents; the egg sits on top.
+static func _mound_model() -> Dictionary:
+	var v := {}
+	for y in 18:
+		var r := 32.0 * sqrt(maxf(0.0, 1.0 - float(y) / 18.0))
+		for x in range(-33, 34):
+			for z in range(-33, 34):
+				var d := Vector2(x, z).length()
+				if d <= r and d > r - 2.0:
+					var rib := int(atan2(z, x) / TAU * 16.0 + 16.0) % 2 == 0
+					var c := AL_MID if rib else AL_DARK
+					if y % 6 == 3 and (x + z) % 7 == 0:
+						c = AL_PINK
+					v[Vector3i(x, y, z)] = c
+	return v
+
+static func _egg_model() -> Dictionary:
+	var v := {}
+	for y in 22:
+		var r := 9.0 * sin(PI * (float(y) + 0.5) / 22.0) * (1.0 - float(y) / 60.0)
+		for x in range(-10, 11):
+			for z in range(-10, 11):
+				var d := Vector2(x, z).length()
+				if d <= r and d > r - 1.6:
+					v[Vector3i(x, y, z)] = AL_PINK if (y + int(atan2(z, x) * 3.0)) % 5 == 0 else AL_LIGHT
 	return v
 
 static func _palm_model() -> Dictionary:

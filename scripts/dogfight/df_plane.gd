@@ -15,6 +15,8 @@ const KINDS := {
 	"fighter":  {"speed": 118.0 * SPEED_K, "boost_speed": 118.0 * SPEED_K, "turn": 0.95 * SPEED_K, "hp": 30.0, "radius": 7.5},
 	"kamikaze": {"speed": 150.0 * SPEED_K, "boost_speed": 150.0 * SPEED_K, "turn": 0.85 * SPEED_K, "hp": 18.0, "radius": 7.0},
 	# slice 16v swarm drone (alien hive): small, fast, weak, rams like a kamikaze, comes in packs
+	# slice 16w: the hive QUEEN (hovers; moved by DfGame._queen_step, like the gunship)
+	"queen":    {"speed": 0.0, "boost_speed": 0.0, "turn": 0.0, "hp": 900.0, "radius": 36.0},
 	"drone":    {"speed": 165.0 * SPEED_K, "boost_speed": 165.0 * SPEED_K, "turn": 1.25 * SPEED_K, "hp": 6.0, "radius": 4.5},
 	# QUAD GUNSHIP boss: hovers; moved by DfGame._boss_step, not by step()/ai_think()
 	"boss":     {"speed": 0.0, "boost_speed": 0.0, "turn": 0.6, "hp": 1400.0, "radius": 40.0},   # covers the rotor hubs
@@ -138,8 +140,10 @@ const BOSS_PX := BOSS_SPAN / 46.0   # m per art pixel
 ## frame at wave 8, the whole "16 ms fixed draw cost".)
 static var _spr_cache := {}     # art name -> DfSprites
 
+var skin := ""                 # another look for the same kind (slice 16w: "akami" = alien kamikaze)
+
 func sprites() -> DfSprites:
-	return sprites_for(kind)
+	return sprites_for(skin if skin != "" else kind)
 
 ## Also used to pre-bake every kind at match start (DfRender.setup): a first bake mid-fight
 ## froze the game for 0.4-1 s.
@@ -153,7 +157,11 @@ static func sprites_for(kind: String) -> DfSprites:
 	if hit != null:
 		return hit
 	var s: DfSprites
-	if kind == "boss":    # 70 m across (art/stacks/gunship.png is 46 px: ~1.52 m per px)
+	if kind == "queen":   # ~75 m across
+		s = DfSprites.bake_art("queen", func(): return model("queen"), 16, [-60, -30, 0, 25, 50, 75], 1.6)
+	elif kind == "akami":
+		s = DfSprites.bake_art("akami", func(): return model("akami"), 32, [-80, -55, -25, 0, 18, 38, 65, 80], JET_M_PER_PX)
+	elif kind == "boss":    # 70 m across (art/stacks/gunship.png is 46 px: ~1.52 m per px)
 		# bake_art scales art to the fallback's size: undo that (BOSS_SPAN / extent of the player model)
 		s = DfSprites.bake_art("gunship", func(): return model("player"), 32, [-80, -55, -25, 0, 18, 38, 65, 80], BOSS_SPAN / DfSprites.extent(model("player")))
 	else:
@@ -387,7 +395,62 @@ static func model(k: String) -> Dictionary:
 			return _kamikaze()
 		"drone":
 			return _drone()
+		"queen":
+			return _queen()
+		"akami":
+			return _akami()
 	return _player()
+
+## Queen placeholder (T: "3 rotating red pink lasers ... out of 3 mouths in a triangle spinning
+## shape"): a triangle carapace, a bone crown, 3 jaw heads at the corners with pink mouths.
+static func _queen() -> Dictionary:
+	var v := {}
+	var dk := Color("2a1433"); var md := Color("4f2160"); var lt := Color("7a3a8c"); var pk := Color("ff4f9e"); var bn := Color("e8dcc0")
+	for y in range(0, 8):
+		var r := 14.0 - absf(y - 3.5) * 1.6
+		for x in range(-16, 17):
+			for z in range(-16, 17):
+				var p := Vector2(x, z)
+				# triangle: inside 3 half-planes
+				var inside := true
+				for k in 3:
+					var n := Vector2(cos(TAU * k / 3.0), sin(TAU * k / 3.0))
+					if p.dot(n) > r * 0.55:
+						inside = false
+				if inside:
+					v[Vector3i(x, y, z)] = (lt if y >= 6 else (md if y % 2 else dk))
+	for k in 3:                                     # 3 heads at the corners, mouths open outward
+		var d := Vector2(cos(TAU * k / 3.0 + PI), sin(TAU * k / 3.0 + PI))
+		var c := d * 13.0
+		for dx in range(-3, 4):
+			for dz in range(-3, 4):
+				for y in range(2, 7):
+					if Vector2(dx, dz).length() <= 3.2:
+						v[Vector3i(roundi(c.x) + dx, y, roundi(c.y) + dz)] = md if y < 6 else lt
+		var m := d * 16.0
+		for y in range(3, 6):
+			v[Vector3i(roundi(m.x), y, roundi(m.y))] = pk
+		v[Vector3i(roundi(c.x), 7, roundi(c.y))] = pk          # an eye on each head
+	for k in 6:                                     # bone crown spikes
+		var a := TAU * k / 6.0
+		for y in range(8, 12):
+			v[Vector3i(roundi(cos(a) * 4.0), y, roundi(sin(a) * 4.0))] = bn
+	return v
+
+## Alien kamikaze placeholder: a bigger hive bug, swept bone wings, a pink stinger nose.
+static func _akami() -> Dictionary:
+	var v := {}
+	for z in range(-6, 7):
+		var w := 2 if absi(z) < 4 else 1
+		for x in range(-w, w + 1):
+			v[Vector3i(x, 1, z)] = Color("4f2160") if (z + x) % 3 else Color("2a1433")
+			v[Vector3i(x, 2, z)] = Color("7a3a8c") if absi(x) < w else Color("4f2160")
+	for s in [-1, 1]:
+		for k in range(0, 7):
+			v[Vector3i(s * (3 + k), 2, k / 2)] = Color("e8dcc0")
+	for z in range(-9, -6):
+		v[Vector3i(0, 1, z)] = Color("ff4f9e")
+	return v
 
 ## Swarm drone placeholder: a pink-eyed hive insect, ~6 m across (T redraws later).
 static func _drone() -> Dictionary:

@@ -9,7 +9,7 @@ T's answers: 3 themed biomes · fights follow you · edge: "Dragon ball arena ga
 | 16t | 4600 m square arena (4 quadrants), glide wall + grid, scenery culling, +30% tempo, fights follow you | ✅ |
 | 16u | Ring course highways between zones | ✅ |
 | 16v | Alien hive zone (zone 1, NE): terrain, hydra plants, gatling cliffs, valley cannons, swarms | ✅ |
-| 16w | Queen boss: hatches, 3 mouths, 3 sweeping red-pink lasers, spinning triangle | next |
+| 16w | Queen boss: hatches, 3 mouths, 3 sweeping red-pink lasers, spinning triangle | ✅ |
 | 16x | Seed (laser opens it) → hex portal (mint/blue, grey frame) → on-rails bonus stage engine + first stage, Marrow reward | |
 | later | Bonus stage per zone; zones 3 + 4. T (2026-11-28): the domed saucer ship (`art/ref/t_dome_sketch.jpg`) is for **zone 3**. It lands on a cliff and shoots a FLAT STAIRWAY down out of the ship on landing (not a ladder) | |
 
@@ -31,3 +31,6 @@ T's answers: 3 themed biomes · fights follow you · edge: "Dragon ball arena ga
 ## Slice 16v (built)
 See `docs/build-log.md` 16v. Knobs: `DfGame.GROUND` (hp, range, fire interval, burst, points), `GATLING_GAP`, `HYDRA_DMG`, `DRONE_DMG`, `SWARM_SIZE`, `UNIT_ARROW_RANGE/MAX`; `DfWorld` cliff counts/heights.
 Risks: wave titles still name the islands' weather ("THE VOLCANO WAKES") in the hive; the hive units are fixed for the whole match (no respawn), so a cleared hive goes quiet; units are ~15 m, small at range.
+
+## Slice 16w (built)
+Knobs: `DfGame.QUEEN_*` (trigger kills / distance, rise, altitude, bob, spin, mouth offset, charge / fire / rest times, beam length / width / damage / tick, score). Risks: she never moves off the mound (a hover turret); the beam plane is easy to read from above but hard to judge from the same height; one Queen per match, no reward beyond score yet (Marrow comes with 16x).

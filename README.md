@@ -373,3 +373,6 @@ T: "Ask me questions to 4x the map and make this just one quadrant".
 ## Slices 16u + 16v: highways + alien hive (2026-11-28)
 - Ring courses are highways to other zones; clearing one launches you there.
 - Zone 1 is the ALIEN HIVE: creep, alien cliffs, gatling / cannon / hydra ground units, drone swarms.
+
+## Slice 16w: the hive Queen (2026-11-28)
+- Destroy 6 hive units (or fly close to the hatch mound) and the Queen hatches: a spinning triangle with 3 mouths that sweep flat red-pink beams. Change height to dodge. Hive kamikazes are alien now.

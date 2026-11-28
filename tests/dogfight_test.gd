@@ -964,7 +964,7 @@ func _ready() -> void:
 	check(bk_p.sprites() == bk_first and bk_us < 50.0, "jet sprites() is a cache lookup (%.1f us per call)" % bk_us)
 	# every atlas the match uses came from a FRESH baked file (stale = run tools/bake_sprites.sh)
 	DfRender.bake_all()
-	for k in ["player", "fighter", "kamikaze", "boss", "drone"]:
+	for k in ["player", "fighter", "kamikaze", "boss", "drone", "queen", "akami"]:
 		DfPlane.sprites_for(k)
 	DfWeather.rock_sprites()
 	check(DfSprites.stats.baked == 0 and DfSprites.stats.loaded >= 10, "all sprite atlases load from fresh art/baked files (live bakes this run %d, loaded %d)" % [DfSprites.stats.baked, DfSprites.stats.loaded])
@@ -1225,6 +1225,64 @@ func _ready() -> void:
 		if e2.kind == "drone":
 			ah_drones += 1
 	check(ah_drones >= df.SWARM_SIZE, "a hive wave brings a swarm (%d drones)" % ah_drones)
+	df.stop()
+
+	# ---------------- slice 16w: the hive QUEEN
+	df.start(51)
+	df.set_process(false)
+	df.demo = ""
+	df.state = "wave"
+	df.enemies.clear()
+	var qm: Dictionary = df.world.mound
+	check(DfWorld.zone_of(qm.pos) == DfWorld.ALIEN_ZONE and df.world.ground_y(qm.pos) > 50.0, "the hatch mound stands in the hive")
+	df.player.position = qm.pos + Vector3(0, 250, 1500)
+	df.sim_step(1.0 / 30.0)
+	check(df.queen == null, "no Queen before the trigger")
+	df.hive_kills = df.QUEEN_TRIGGER_KILLS
+	df.sim_step(1.0 / 30.0)
+	check(df.queen != null and df.enemies.has(df.queen), "destroying %d hive units hatches the Queen" % df.QUEEN_TRIGGER_KILLS)
+	for k in int((df.QUEEN_RISE + 0.5) * 30.0):
+		df._queen_step(df.queen, 1.0 / 30.0)
+	check(absf(df.queen.position.y - df.QUEEN_ALT) <= df.QUEEN_BOB + 1.0, "she rises to her hover height (%.0f m)" % df.queen.position.y)
+	var q_ang0: float = df.queen_st.ang
+	for k in 60:
+		df._queen_step(df.queen, 1.0 / 30.0)
+	check(float(df.queen_st.ang) - q_ang0 > 0.5, "she spins (the beams sweep)")
+	# a beam: a point in front of a mouth at beam height is hit; 40 m above it is not
+	var q_m: Array = df.queen_mouths()[0]
+	var q_in: Vector3 = q_m[0] + q_m[1] * 400.0
+	check(df._queen_beam_hits(q_in, 7.0) and not df._queen_beam_hits(q_in + Vector3.UP * 40.0, 7.0), "a beam hits in its plane, misses 40 m above")
+	# a firing beam that holds the player loses hull over time
+	df.state = "wave"                 # the sim steps above may have moved the wave on
+	df.queen_st.phase = "fire"
+	df.queen_st.phase_t = 0.0
+	df.player.shield = 0.0
+	var q_hp: float = df.player.hp
+	for k in 15:
+		df.player.position = df.queen_mouths()[0][0] + df.queen_mouths()[0][1] * 300.0
+		df._queen_step(df.queen, 1.0 / 30.0)
+	check(df.player.hp < q_hp, "her beam burns the hull (%.0f -> %.0f)" % [q_hp, df.player.hp])
+	# the laser is not a one-shot on her; enough damage kills her for the big score
+	df.player.hp = df.player.max_hp
+	var q_hp0: float = df.queen.hp
+	df.queen.damage(df.LASER_BOSS_DMG)
+	check(df.queen.alive and df.queen.hp < q_hp0, "one laser hurts her but does not kill her")
+	var q_score: float = df.score
+	df.queen.damage(9999.0)
+	df._kill_enemy(df.queen, "player")
+	check(df.queen_done and df.queen == null and df.score >= q_score + df.QUEEN_SCORE, "QUEEN DOWN pays %d" % int(df.QUEEN_SCORE))
+	df.sim_step(1.0 / 30.0)
+	check(df.queen == null, "she hatches only once per match")
+	# hive kamikazes wear the alien skin
+	df.player.position = Vector3(2600, 150, -400)
+	df.enemies.clear()
+	df.wave = 3
+	df._next_wave()
+	var q_skin := 0
+	for e4 in df.enemies:
+		if e4.kind == "kamikaze" and e4.skin == "akami":
+			q_skin += 1
+	check(q_skin > 0, "hive kamikazes are alien (%d)" % q_skin)
 	df.stop()
 
 	print("DOGFIGHT TESTS: %d passed, %d failed" % [passes, fails])

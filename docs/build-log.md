@@ -406,3 +406,13 @@ T: "Demo on the blade image translated to pixel art first in style" / "Yes but t
 - First pass was white with thin neon lines: T: "the colors aren't there". Fixed by sampling his pastels.
 - Shimmer demo (scratch GIF): a 2-step light band runs hilt -> tip, then a ready pulse. Not in the game yet.
 
+## Slice 16w: the hive Queen (2026-11-28)
+T: "Instead of volcano the queen hatches and shoots 3 rotating red pink lasers that sweep horizontally out of 3 mouths in a triangle spinning shape" / "You're not missing any alien stuff right" / "Go on".
+- HATCH MOUND in the hive (`DfWorld.mound`, a ground_y cone + its own island) with a pulsing egg.
+- The Queen hatches once per match: `QUEEN_TRIGGER_KILLS` (6) hive units destroyed, or you fly within `QUEEN_TRIGGER_DIST` (350 m). She rises out of the mound to `QUEEN_ALT`, spins (`QUEEN_SPIN` 0.32 rad/s) and bobs (+-45 m).
+- Cycle: charge 1.4 s (thin flickering aim lines) -> fire 3.2 s (3 flat red-pink beams straight out of the 3 mouths, 1300 m; the spin sweeps them) -> rest 2.2 s. Beam: 16 hull per 0.3 s inside it. Dodge by height or by staying out of a beam's arc.
+- 900 hp; the laser / cyan chain do boss damage (not a one-shot). QUEEN DOWN: +2500, radio.
+- Hive kamikazes wear an alien skin (`DfPlane.skin = "akami"`).
+- Placeholder sprites: queen, alien kamikaze, mound, egg (22 baked atlases). Demo `--dfdemo=queen` (flybys above beam height).
+- Tests: dogfight 298 (+11).
+
