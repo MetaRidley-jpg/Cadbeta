@@ -130,10 +130,9 @@ func setup(g: Node) -> void:
 	clouds.clear()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 17
-	for k in 46:
-		var a := rng.randf() * TAU
-		var r := sqrt(rng.randf()) * DfWorld.AREA_RADIUS * 1.3
-		clouds.append({"pos": Vector3(cos(a) * r, rng.randf_range(150.0, 330.0), sin(a) * r), "img": k % 3, "size": rng.randf_range(2.6, 4.2)})
+	for k in 46 * 4:                  # slice 16t: the same density over the 4x map
+		var cxz := DfWorld.ARENA_MIN - Vector2(300, 300) + Vector2(rng.randf(), rng.randf()) * (DfWorld.ARENA_MAX - DfWorld.ARENA_MIN + Vector2(600, 600))
+		clouds.append({"pos": Vector3(cxz.x, rng.randf_range(150.0, 330.0), cxz.y), "img": k % 3, "size": rng.randf_range(2.6, 4.2)})
 
 func clear() -> void:
 	game = null
@@ -997,13 +996,31 @@ func _draw_units() -> void:
 	_replay_focus()
 	var amb: Color = game.weather.cur.get("ambient", Color.WHITE)     # scenery takes the weather's daylight
 	_queue_sprite(list, spr.volcano, vp.pos, 0.0, 1.0, 0.0, Color(amb, _replay_occluder_alpha(vp.pos, 190.0, 340.0)))
-	for sp in world.spires:
-		if sp.alive:
-			_queue_sprite(list, spr.spire, sp.pos, float(int(sp.pos.x) % 8), sp.height / 70.0, 0.0,
-				Color(amb, _replay_occluder_alpha(sp.pos, sp.height, sp.height * 0.5)))
-	for p in world.palms:
-		if p.alive:
-			_queue_sprite(list, spr.palm, p.pos, float(p.get("yaw", float(int(p.pos.z) % 8))), 1.0, 0.0, amb)
+	# slice 16t: 4x map = 4x scenery. Only grid cells inside the fog and not behind the camera.
+	var cf := Vector2(cam_fwd.x, cam_fwd.z)
+	var reach := fog_end * 1.05 + DfWorld.CELL * 0.75
+	var c0 := DfWorld.cell_of(cam_pos - Vector3(reach, 0.0, reach))
+	var c1 := DfWorld.cell_of(cam_pos + Vector3(reach, 0.0, reach))
+	var n_cells := 0
+	for cz in range(c0.y, c1.y + 1):
+		for cx in range(c0.x, c1.x + 1):
+			var cl: Variant = world.cells.get(Vector2i(cx, cz))
+			if cl == null:
+				continue
+			var cc := Vector2((cx + 0.5) * DfWorld.CELL - cam_pos.x, (cz + 0.5) * DfWorld.CELL - cam_pos.z)
+			if cc.length() > reach or (cf.length() > 0.2 and cc.dot(cf.normalized()) < -DfWorld.CELL * 0.75 and cam_fwd.y > -0.6):
+				continue
+			n_cells += 1
+			for i in cl.spires:
+				var sp: Dictionary = world.spires[i]
+				if sp.alive:
+					_queue_sprite(list, spr.spire, sp.pos, float(int(sp.pos.x) % 8), sp.height / 70.0, 0.0,
+						Color(amb, _replay_occluder_alpha(sp.pos, sp.height, sp.height * 0.5)))
+			for i in cl.palms:
+				var p: Dictionary = world.palms[i]
+				if p.alive:
+					_queue_sprite(list, spr.palm, p.pos, float(p.get("yaw", float(int(p.pos.z) % 8))), 1.0, 0.0, amb)
+	DfProf.val("n_cells", n_cells)
 	for s in game.ships:
 		if s.alive:
 			_queue_sprite(list, spr.ship, s.pos + Vector3(0, sin(s.bob * 1.3) * 0.8, 0), s.yaw)
@@ -1215,6 +1232,7 @@ func _draw_units() -> void:
 				ci.draw_rect(Rect2((Vector2(a.x, a.y) - Vector2(sz, sz) * 0.5).round(), Vector2(sz, sz)), col)
 	DfProf.add("draw", pt)
 	pt = DfProf.t0()
+	_draw_wall_grid(ci)
 	_draw_weather(ci, weather)
 	_draw_asteroid_tint(ci)
 	DfProf.add("weather", pt)
@@ -1519,6 +1537,42 @@ func _draw_projectile(ci: CanvasItem, pr: Dictionary, a: Vector3) -> void:
 			ci.draw_rect(Rect2(at - Vector2(s3, s3) * 0.5, Vector2(s3, s3)), DfPal.LAVA)
 
 ## A flat circle on the ground, projected (shadows, asteroid impact zone).
+## Arena wall grid (slice 16t): a mint/cyan pixel grid on the wall plane round the nearest
+## point, stronger as you close in (game.wall_near), fading out from the centre of the patch.
+const WALL_GRID := 30.0            # m between grid lines
+const WALL_PATCH := 260.0          # m: half width of the visible patch
+func _draw_wall_grid(ci: CanvasItem) -> void:
+	var s: float = game.wall_near
+	if s <= 0.01 or game.state == "replay":
+		return
+	var n: Vector3 = game.wall_n
+	var c: Vector3 = game.wall_point
+	var t := n.cross(Vector3.UP).normalized()             # along the wall
+	var a0 := snappedf(c.dot(t), WALL_GRID)
+	var col := Color(0.55, 1.0, 0.85)
+	# vertical lines (along t) and horizontal lines (heights), each split in 8 pieces
+	for k in range(-9, 10):
+		var u := a0 + k * WALL_GRID - c.dot(t)
+		_wall_line(ci, c + t * u + Vector3.UP * 0.0, c + t * u + Vector3.UP * 320.0, c, col, s)
+	for h in range(0, 11):
+		var y := h * WALL_GRID + 10.0
+		_wall_line(ci, Vector3(c.x, y, c.z) - t * WALL_PATCH, Vector3(c.x, y, c.z) + t * WALL_PATCH, c, col, s)
+
+func _wall_line(ci: CanvasItem, a: Vector3, b: Vector3, c: Vector3, col: Color, s: float) -> void:
+	for i in 8:
+		var p0 := a.lerp(b, i / 8.0)
+		var p1 := a.lerp(b, (i + 1) / 8.0)
+		var mid := (p0 + p1) * 0.5
+		var fall := 1.0 - clampf(Vector2(mid.x - c.x, mid.z - c.z).length() / WALL_PATCH, 0.0, 1.0)
+		fall *= 1.0 - clampf(absf(mid.y - cam_pos.y) / 220.0, 0.0, 1.0) * 0.6
+		if fall <= 0.02:
+			continue
+		var q0 := project(p0)
+		var q1 := project(p1)
+		if q0.z <= 0.5 or q1.z <= 0.5:
+			continue
+		ci.draw_line(Vector2(q0.x, q0.y).round(), Vector2(q1.x, q1.y).round(), Color(col, 0.85 * s * fall), 1.0)
+
 func _ground_disc(ci: CanvasItem, c: Vector3, r: float, col: Color) -> void:
 	var pts := PackedVector2Array()
 	for k in 14:

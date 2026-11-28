@@ -33,7 +33,7 @@ func _ready() -> void:
 	for k in 60:
 		p.step(1.0 / 30.0)
 	var slip := p.vel.normalized().angle_to(p.forward())
-	check(p.speed < 110.0, "drift slows the jet below cruise (%.1f)" % p.speed)
+	check(p.speed < 110.0 * DfPlane.SPEED_K, "drift slows the jet below cruise (%.1f)" % p.speed)
 	p.drift_time = 0.0      # no drift boost here: this checks the plain boost
 	p.drift = false
 	p.turn = 0.0
@@ -377,7 +377,7 @@ func _ready() -> void:
 		var sv: Vector3 = df.replay.victim_pos(df)
 		var sdist: float = (sc[0] as Vector3).distance_to(sv)
 		shot_log += "%s %.0fm " % [sk, sdist]
-		if not is_finite(sdist) or sdist < 40.0 or sdist > 450.0 or (sc[0] as Vector3).distance_to(sc[1]) < 1.0:
+		if not is_finite(sdist) or sdist < 40.0 or sdist > 450.0 * DfPlane.SPEED_K or (sc[0] as Vector3).distance_to(sc[1]) < 1.0:
 			shots_ok = false
 	check(shots_ok, "every replay shot frames the target at a readable distance (%s)" % shot_log)
 	df.replay._plan = []
@@ -1003,21 +1003,23 @@ func _ready() -> void:
 	# ---------------- T: "rings can spawn out of bounds" + "stop it from aiming into the ground"
 	var ob_rc := DfRings.new()
 	ob_rc.setup(Callable(), 99)
-	var ob_worst := 0.0
+	var ob_out_m := 0.0                 # worst distance OUTSIDE the arena walls (0 = all inside)
 	var ob_n := 0
+	var ob_c := DfWorld.center()
 	for ob_kind in DfRings.KINDS:
-		for ob_a in 12:
-			var ob_ang := TAU * ob_a / 12.0
+		for ob_a in 16:                   # spawn points on and past the square walls + corners, heading out
+			var ob_ang := TAU * ob_a / 16.0
 			var ob_out := Vector3(cos(ob_ang), 0.0, sin(ob_ang))
-			for ob_r in [900.0, 1150.0, 1300.0]:        # near the edge, at it, and past it (TURN BACK)
-				var ob_pos: Vector3 = ob_out * float(ob_r) + Vector3.UP * 150.0
-				ob_rc.spawn(ob_pos, ob_out.rotated(Vector3.UP, 0.3), ob_kind)   # heading OUT of the arena
+			for ob_r in [2100.0, 2300.0, 2600.0]:
+				var ob_pos: Vector3 = ob_c + ob_out * float(ob_r) + Vector3.UP * 150.0
+				ob_rc.spawn(ob_pos, ob_out.rotated(Vector3.UP, 0.3), ob_kind)
 				for ob_t in [0.0, 3.0, 7.0, 12.0, 20.0]:
-					for i in DfRings.RINGS:
+					for i in ob_rc.rings.size():
 						var ob_p: Vector3 = ob_rc.pose(i, ob_t)[0]
-						ob_worst = maxf(ob_worst, Vector2(ob_p.x, ob_p.z).length())
+						var ob_q := DfWorld.clamp_inside(ob_p, 50.0)
+						ob_out_m = maxf(ob_out_m, Vector2(ob_p.x - ob_q.x, ob_p.z - ob_q.z).length())
 						ob_n += 1
-	check(ob_worst <= DfWorld.AREA_RADIUS - 50.0, "ring courses stay inside the arena, even spawned at the edge heading out (worst %.0f m of %.0f, %d ring poses)" % [ob_worst, DfWorld.AREA_RADIUS, ob_n])
+	check(ob_out_m <= 0.01, "ring courses stay 50 m inside the arena walls, even spawned at the edge heading out (worst %.0f m out, %d ring poses)" % [ob_out_m, ob_n])
 	df.start(3)
 	df.set_process(false)
 	# final ring with the nose pointing down (the loop wheel's last ring): thrown ahead, not down
@@ -1038,6 +1040,61 @@ func _ready() -> void:
 	# a safe launch is untouched (T: keep the exact launches)
 	var gl_ok: Vector3 = df.safe_launch_dir(Vector3(0, 200, 0), Vector3(0.2, 0.05, -1.0), 210.0, 0.55)
 	check(gl_ok.is_equal_approx(Vector3(0.2, 0.05, -1.0).normalized()), "a launch with room to spare keeps its exact aim")
+	df.stop()
+
+	# ---------------- slice 16t: 4x map (4 quadrants), glide wall, +30% tempo, culling
+	df.start(21)
+	df.set_process(false)
+	var w4: DfWorld = df.world
+	check(DfWorld.ARENA_MAX.x - DfWorld.ARENA_MIN.x == 4600.0 and DfWorld.zone_of(Vector3(0, 0, -150)) == 0, "the arena is 4600 m square; the old islands are zone 0")
+	var w4_zones := {}
+	for isl in w4.islands:
+		w4_zones[DfWorld.zone_of(isl.pos)] = true
+		check(DfWorld.inside(isl.pos, isl.radius), "island %s sits inside the arena" % str(isl.pos))
+	check(w4_zones.size() == 4, "every quadrant has islands (%d zones)" % w4_zones.size())
+	check(absf(DfPlane.KINDS.player.speed - 125.0 * 1.3) < 0.01 and absf(DfPlane.KINDS.player.speed / DfPlane.KINDS.player.turn - 125.0 / 1.15) < 0.01, "+30% speed, same turn radius")
+	# ground_y with the cell grid = brute force over every spire
+	var gy_bad := 0
+	var gy_rng := RandomNumberGenerator.new()
+	gy_rng.seed = 3
+	for k in 400:
+		var gy_sp: Dictionary = w4.spires[gy_rng.randi() % w4.spires.size()]
+		var gy_p: Vector3 = gy_sp.pos + Vector3(gy_rng.randf_range(-30, 30), 0, gy_rng.randf_range(-30, 30))
+		var gy_brute := 0.0
+		for s2 in w4.spires:
+			if s2.alive and Vector2(gy_p.x - s2.pos.x, gy_p.z - s2.pos.z).length() < s2.radius:
+				gy_brute = maxf(gy_brute, s2.height)
+		if w4.ground_y(gy_p) < gy_brute - 0.01:
+			gy_bad += 1
+	check(gy_bad == 0, "ground_y (cell grid) finds every spire (%d misses of 400)" % gy_bad)
+	# glide wall: fly straight at the east wall for 4 s -> held inside, no damage, keeps speed, slides along
+	df.state = "wave"
+	df.enemies.clear()
+	df.player.position = Vector3(DfWorld.ARENA_MAX.x - 60.0, 150.0, 1500.0)
+	df.player.basis = Basis.looking_at(Vector3(1, 0, 0.25).normalized(), Vector3.UP)
+	df.player.vel = df.player.forward() * df.player.speed
+	var gw_hp: float = df.player.hp
+	var gw_z0: float = df.player.position.z
+	var gw_max_x := -INF
+	for k in 120:
+		df.player.turn = 0.0
+		df.player.pitch_in = 0.0
+		df.player.step(1.0 / 30.0)
+		df._glide_wall(1.0 / 30.0)
+		gw_max_x = maxf(gw_max_x, df.player.position.x)
+	check(gw_max_x <= DfWorld.ARENA_MAX.x - df.WALL_GAP + 0.01, "the wall holds the jet inside (max x %.1f of %.0f)" % [gw_max_x, DfWorld.ARENA_MAX.x])
+	check(df.player.hp == gw_hp and df.player.speed > DfPlane.KINDS.player.speed - 5.0, "the wall does no damage and keeps speed (%.0f m/s)" % df.player.speed)
+	check(df.player.position.z - gw_z0 > 250.0 and df.player.forward().x < 0.1, "the jet glides along the wall (%.0f m along, nose x %.2f)" % [df.player.position.z - gw_z0, df.player.forward().x])
+	check(df.wall_near == 1.0, "the wall grid shows at full strength on contact")
+	# fights follow you: in the far SE quadrant, enemies spawn near you and inside the arena
+	df.player.position = Vector3(3000, 150, 3000)
+	for k in 6:
+		df._spawn_enemy("fighter")
+	var fy_ok := true
+	for fy_e in df.enemies:
+		if fy_e.position.distance_to(df.player.position) > 1100.0 or not DfWorld.inside(fy_e.position):
+			fy_ok = false
+	check(fy_ok, "enemies spawn near you, even in the far quadrant")
 	df.stop()
 
 	print("DOGFIGHT TESTS: %d passed, %d failed" % [passes, fails])

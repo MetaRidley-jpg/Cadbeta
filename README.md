@@ -362,3 +362,7 @@ T: "Rings can spawn out of bounds" / "stop it from aiming into the ground" / "fi
 - Ring courses stay inside the arena; launches never throw you into the ground or sea.
 - 3 new courses: FIGURE 8, BIG LOOP (a 140 m loop leaned 50°: a round upright loop this big does not fit under the 300 m ceiling), HELIX. All 7 courses pass a flyability test.
 - Boost: the speed holds after you let go, then coasts down (~4.9 s to cruise, was ~1.9 s).
+
+## Slice 16t: 4x map (2026-11-28)
+T: "Ask me questions to 4x the map and make this just one quadrant".
+- The map is 4x bigger (4600 m square); the old islands are one quadrant. An invisible wall with a mint grid lets you glide along the edge. Everything is 30% faster; fights follow you. Plan for the alien zone, Queen, portals and bonus stages: `docs/world-4x.md`.

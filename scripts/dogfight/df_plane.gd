@@ -6,37 +6,41 @@ extends RefCounted
 ## pitch, max 68 deg). The player flies FREE: full 360 loops and rolls, inputs act in the
 ## jet's own frame (pull = toward the canopy). ASSIST levels the wings when you stop pulling.
 
+## T (slice 16t, map 4x): "Everything +30%". Speeds AND turn rates are scaled by SPEED_K, so
+## every turn radius (speed / turn rate), ring course and launch keeps its size; only the
+## tempo is faster. Bullets scale too (DfGame), so aim leads stay the same.
+const SPEED_K := 1.3
 const KINDS := {
-	"player":   {"speed": 125.0, "boost_speed": 215.0, "turn": 1.15, "hp": 100.0, "radius": 7.0},
-	"fighter":  {"speed": 118.0, "boost_speed": 118.0, "turn": 0.95, "hp": 30.0, "radius": 7.5},
-	"kamikaze": {"speed": 150.0, "boost_speed": 150.0, "turn": 0.85, "hp": 18.0, "radius": 7.0},
+	"player":   {"speed": 125.0 * SPEED_K, "boost_speed": 215.0 * SPEED_K, "turn": 1.15 * SPEED_K, "hp": 100.0, "radius": 7.0},
+	"fighter":  {"speed": 118.0 * SPEED_K, "boost_speed": 118.0 * SPEED_K, "turn": 0.95 * SPEED_K, "hp": 30.0, "radius": 7.5},
+	"kamikaze": {"speed": 150.0 * SPEED_K, "boost_speed": 150.0 * SPEED_K, "turn": 0.85 * SPEED_K, "hp": 18.0, "radius": 7.0},
 	# QUAD GUNSHIP boss: hovers; moved by DfGame._boss_step, not by step()/ai_think()
 	"boss":     {"speed": 0.0, "boost_speed": 0.0, "turn": 0.6, "hp": 1400.0, "radius": 40.0},   # covers the rotor hubs
 }
 const JET_M_PER_PX := 0.6      # 1 model pixel = 0.6 m: ~14 m wingspan
 const DRIFT_TURN_MULT := 2.3
-const DRIFT_SPEED := 95.0
-const DRIFT_GRIP := 1.6        # how fast velocity follows the nose while drifting (per s)
-const GRIP := 9.0
-const PITCH_RATE := 1.0
+const DRIFT_SPEED := 95.0 * SPEED_K
+const DRIFT_GRIP := 1.6 * SPEED_K        # how fast velocity follows the nose while drifting (per s)
+const GRIP := 9.0 * SPEED_K
+const PITCH_RATE := 1.0 * SPEED_K
 const MAX_PITCH := deg_to_rad(68.0)
-const FREE_PITCH_RATE := 1.55   # rad/s: a full loop at full pull is about 4 s
+const FREE_PITCH_RATE := 1.55 * SPEED_K   # rad/s: a full loop at full pull is about 4 s
 const LEVEL_RATE := 2.2         # assist: roll back to wings level (rad/s)
 const LEVEL_PITCH := 0.35       # assist: nose back to the horizon (rad/s)
 const ROLL_TIME := 0.5          # barrel roll: one full turn about the nose
-const ROLL_DODGE := 55.0        # m/s sideways kick at the start of a roll
+const ROLL_DODGE := 55.0 * SPEED_K        # m/s sideways kick at the start of a roll
 const ROLL_COOLDOWN := 1.2
-const ACCEL := 70.0
+const ACCEL := 70.0 * SPEED_K
 const BOOST_DRAIN := 26.0      # boost meter per second while boosting
 ## Player boost has 3 stages by how long BOOST is held (T's sheet: boost 1, boost 2, top speed).
 const BOOST_STAGE_TIME := [0.0, 1.0, 2.2]        # seconds held to reach stage 1, 2, 3
-const BOOST_STAGE_SPEED := [0.0, 185.0, 220.0, 255.0]
+const BOOST_STAGE_SPEED := [0.0, 185.0 * SPEED_K, 220.0 * SPEED_K, 255.0 * SPEED_K]
 ## T (2026-11-28): "when boosting let speed hold over longer when letting go of the button".
 ## Let go of BOOST: the speed you reached HOLDS for BOOST_HOLD[stage] s, then COASTS down to
 ## cruise at COAST_DECEL (normal ACCEL is 70). Top speed -> cruise: ~4.9 s (was ~1.9 s).
 ## Drift (a brake) and climbing still slow you at once.
 const BOOST_HOLD := [0.0, 0.4, 0.8, 1.2]
-const COAST_DECEL := 35.0
+const COAST_DECEL := 35.0 * SPEED_K
 ## Drift boost (player): drift long enough, let go, and you shoot out at TOP SPEED for a
 ## moment and get some boost meter back. Two tiers by how long you held the drift.
 const DRIFT_TIERS := [1.1, 2.2]              # drift seconds for tier 1 / tier 2
@@ -51,12 +55,12 @@ var free := false              # player: full 360 flight
 # Ring launch (T: the rings "launch you to the next one and change your yaw"): for launch_t
 # seconds the jet flies straight along launch_dir at >= launch_speed while its nose (yaw and
 # pitch) swings onto that line. Steering input still applies on top.
-const LAUNCH_TURN := 14.0
+const LAUNCH_TURN := 14.0 * SPEED_K
 var launch_dir := Vector3.ZERO
 var launch_t := 0.0
 var launch_speed := 0.0
 
-func launch(dir: Vector3, time := 0.55, min_speed := 210.0) -> void:
+func launch(dir: Vector3, time := 0.55, min_speed := 210.0 * SPEED_K) -> void:
 	if dir.length() < 0.01:
 		return
 	launch_dir = dir.normalized()
@@ -241,8 +245,8 @@ func step(dt: float) -> void:
 	if not boosting:
 		boost_time = 0.0
 	speed = move_toward(speed, minf(target, speed_cap), rate * dt)
-	speed -= forward().y * 22.0 * dt    # climbing costs speed, diving gains it
-	speed = clampf(speed, 60.0, 260.0)
+	speed -= forward().y * 22.0 * SPEED_K * dt    # climbing costs speed, diving gains it
+	speed = clampf(speed, 60.0 * SPEED_K, 260.0 * SPEED_K)
 	var grip := DRIFT_GRIP if drift else GRIP
 	if launch_t > 0.0:
 		launch_t -= dt

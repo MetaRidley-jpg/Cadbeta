@@ -10,14 +10,23 @@ extends RefCounted
 ## B = sea depth near islands (0 = open sea; 1..255 = shore..deep) for the emerald shallows,
 ## A unused.
 
-const AREA_RADIUS := 1150.0
+const AREA_RADIUS := 1150.0           # the ORIGINAL arena (now the tropical quadrant, zone 0)
+## Slice 16t, T: "4x the map and make this just one quadrant". The arena is a square of 4
+## quadrants, QUAD m each. Zone 0 (the old islands) keeps its coordinates: it is the NW
+## quadrant. Zone 1 = NE (alien hive, slice 16v), zone 2 = SW, zone 3 = SE (T: decide later).
+const QUAD := AREA_RADIUS * 2.0        # 2300 m
+const ARENA_MIN := Vector2(-AREA_RADIUS, -AREA_RADIUS)
+const ARENA_MAX := Vector2(-AREA_RADIUS + QUAD * 2.0, -AREA_RADIUS + QUAD * 2.0)
+const ZONE_NAMES := ["ISLANDS", "ALIEN HIVE", "ZONE 3", "ZONE 4"]
 const MAP_M := 4.0
-const MAP_PX := 640                    # 2560 m square
+const MAP_PX := 1280                   # 5120 m square (arena 4600 m + 260 m sea round it)
+const CELL := 500.0                    # scenery grid (culling + fast ground_y)
 const HOOP_RADIUS := 16.0
 
 var map_img: Image
 var map_tex: ImageTexture
-var map_origin := Vector2(-MAP_PX * MAP_M * 0.5, -MAP_PX * MAP_M * 0.5)
+var map_origin := (ARENA_MIN + ARENA_MAX) * 0.5 - Vector2(MAP_PX * MAP_M * 0.5, MAP_PX * MAP_M * 0.5)
+var cells := {}                        # Vector2i -> {"palms": [i], "spires": [i]}
 var islands: Array = []                # {pos: Vector3, radius}
 var spires: Array = []                 # {pos: Vector3, radius, height, alive}
 var palms: Array = []                  # {pos: Vector3, alive, yaw (leans out to sea)}
@@ -35,6 +44,21 @@ func build(seed_value := 7) -> void:
 		{"pos": Vector3(-140, 0, -900), "radius": 140.0},
 		{"pos": volcano.pos, "radius": volcano.radius + 40.0},
 	]
+	for z in range(1, 4):              # placeholder islands in the 3 new quadrants
+		var q0 := zone_origin(z)
+		var placed: Array = []
+		for tries in 40:
+			if placed.size() >= 5:
+				break
+			var r := rng.randf_range(130.0, 330.0)
+			var p := Vector3(q0.x + rng.randf_range(r + 120.0, QUAD - r - 120.0), 0.0, q0.y + rng.randf_range(r + 120.0, QUAD - r - 120.0))
+			var ok := true
+			for o in placed:
+				if Vector2(p.x - o.pos.x, p.z - o.pos.z).length() < r + float(o.radius) + 160.0:
+					ok = false
+			if ok:
+				placed.append({"pos": p, "radius": r, "zone": z})
+		islands.append_array(placed)
 	var noise := FastNoiseLite.new()
 	noise.seed = seed_value
 	noise.frequency = 0.02
@@ -111,6 +135,44 @@ func build(seed_value := 7) -> void:
 	# the old static hoops are replaced by moving ring courses (DfRings, slice 16n);
 	# the hoop helpers stay for tests / tools
 
+	_build_cells()
+
+# ------------------------------------------------------------------ arena + zones
+static func zone_origin(z: int) -> Vector2:
+	return ARENA_MIN + Vector2(QUAD * (z % 2), QUAD * (z / 2))
+
+static func zone_of(p: Vector3) -> int:
+	var zx := 1 if p.x >= ARENA_MIN.x + QUAD else 0
+	var zz := 1 if p.z >= ARENA_MIN.y + QUAD else 0
+	return zx + zz * 2
+
+static func center() -> Vector3:
+	var c := (ARENA_MIN + ARENA_MAX) * 0.5
+	return Vector3(c.x, 0.0, c.y)
+
+## p moved (flat) to lie at least `margin` m inside the arena walls.
+static func clamp_inside(p: Vector3, margin := 0.0) -> Vector3:
+	return Vector3(clampf(p.x, ARENA_MIN.x + margin, ARENA_MAX.x - margin), p.y, clampf(p.z, ARENA_MIN.y + margin, ARENA_MAX.y - margin))
+
+static func inside(p: Vector3, margin := 0.0) -> bool:
+	return p.x >= ARENA_MIN.x + margin and p.x <= ARENA_MAX.x - margin and p.z >= ARENA_MIN.y + margin and p.z <= ARENA_MAX.y - margin
+
+static func cell_of(p: Vector3) -> Vector2i:
+	return Vector2i(floori(p.x / CELL), floori(p.z / CELL))
+
+func _build_cells() -> void:
+	cells.clear()
+	for i in palms.size():
+		var k := cell_of(palms[i].pos)
+		if not cells.has(k):
+			cells[k] = {"palms": [], "spires": []}
+		cells[k].palms.append(i)
+	for i in spires.size():
+		var k := cell_of(spires[i].pos)
+		if not cells.has(k):
+			cells[k] = {"palms": [], "spires": []}
+		cells[k].spires.append(i)
+
 func _random_on_island(isl: Dictionary, frac: float) -> Vector3:
 	var a := rng.randf() * TAU
 	var r: float = sqrt(rng.randf()) * isl.radius * frac
@@ -134,9 +196,16 @@ func ground_y(pos: Vector3) -> float:
 		g = volcano.height * (1.0 - dv / volcano.radius)
 		if dv < volcano.radius * 0.16:
 			g = volcano.height * 0.84 * 0.82   # crater bowl
-	for s in spires:
-		if s.alive and Vector2(pos.x - s.pos.x, pos.z - s.pos.z).length() < s.radius:
-			g = maxf(g, s.height)
+	var c := cell_of(pos)             # spires (radius <= 24 m) sit in their own cell: 3x3 cells cover them
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			var cl: Variant = cells.get(Vector2i(c.x + dx, c.y + dz))
+			if cl == null:
+				continue
+			for i in cl.spires:
+				var s: Dictionary = spires[i]
+				if s.alive and Vector2(pos.x - s.pos.x, pos.z - s.pos.z).length() < s.radius:
+					g = maxf(g, s.height)
 	return g
 
 ## Asteroid crater: paint scorch + a lava bowl into the map, flatten spires and palms.

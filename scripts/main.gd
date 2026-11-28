@@ -1160,6 +1160,10 @@ func _debug_setup() -> void:
 			df.player.pitch = -0.35
 			df.player.vel = df.player.forward() * df.player.speed
 			df._update_camera(0.0)
+		if args.has("dfyaw"):     # heading in degrees (0 = north/-z, 90 = west): wall / zone shots
+			df.player.yaw = deg_to_rad(float(args.dfyaw))
+			df.player.vel = df.player.forward() * df.player.speed
+			df._update_camera(0.0)
 		if args.has("dfboost"):
 			df.player.boost_in = true
 			df.player.boost = 80.0

@@ -10,9 +10,10 @@ signal finished(result_text: String)
 
 const SHRINK := 3                 # world renders at 1/3 res, nearest filter = 1 art px = 3 screen px
 const AREA_RADIUS := DfWorld.AREA_RADIUS
+const K := DfPlane.SPEED_K       # slice 16t: +30% tempo (speeds and turn rates)
 const CEILING := 300.0
 const WAVE_BREAK := 5.0
-const BULLET_SPEED := 950.0
+const BULLET_SPEED := 950.0 * DfPlane.SPEED_K
 const BULLET_LIFE := 0.7
 const BULLET_DMG := 5.0
 const FIRE_INTERVAL := 0.07
@@ -20,12 +21,12 @@ const GUN_CONE := deg_to_rad(13.0)   # T: "a little wider than the reticle shows
 const RETICLE_TO_CONE := 1.2           # the gun cone is at least 20% wider than the idle reticle
 const RETICLE_MAX := 56.0              # px half-size cap: a cone-sized box (~90 px) hid the jet
 const GUN_RANGE := 650.0
-const ENEMY_BULLET_SPEED := 650.0
+const ENEMY_BULLET_SPEED := 650.0 * DfPlane.SPEED_K
 const ENEMY_BULLET_DMG := 3.0
 const ENEMY_FIRE_INTERVAL := 0.24
 const ENEMY_GUN_CONE := deg_to_rad(5.0)
 const ENEMY_GUN_RANGE := 450.0
-const FLAK_SPEED := 380.0
+const FLAK_SPEED := 380.0 * DfPlane.SPEED_K
 const FLAK_RADIUS := 26.0
 const FLAK_DMG := 16.0
 const SHIP_FIRE_INTERVAL := 2.8
@@ -414,12 +415,6 @@ func _player_step(dt: float) -> void:
 		_autopilot()
 	else:
 		_read_inputs()
-	# keep the fight inside the area
-	var flat := Vector2(player.position.x, player.position.z)
-	if flat.length() > AREA_RADIUS:
-		player.turn = player.steer_to(Vector3(0.0, player.position.y, 0.0)).x   # nose toward home
-		if _msg_t <= 0.0:
-			_show_msg("TURN BACK", 1.0)
 	if player.position.y > CEILING:        # push the nose down (in the jet's frame: works inverted)
 		var fl := Vector3(player.forward().x, 0.0, player.forward().z).normalized() if absf(player.forward().y) < 0.99 else Vector3.FORWARD
 		player.pitch_in = player.steer_to(player.position + fl * 200.0 + Vector3.DOWN * 90.0).y
@@ -432,6 +427,7 @@ func _player_step(dt: float) -> void:
 	var prev := player.position
 	var was_rolling := player.rolling()
 	player.step(dt)
+	_glide_wall(dt)
 	if player.rolling() and not was_rolling:
 		Sfx.play("roll", -3.0)
 	var bs := player.boost_stage()
@@ -553,7 +549,7 @@ func start_demo(name: String) -> void:
 	center_msg.modulate.a = 0.0
 	player.position = Vector3(player.position.x, 95.0, player.position.z)
 	player.pitch = 0.0
-	player.speed = 125.0
+	player.speed = 125.0 * K
 	player.vel = player.forward() * 125.0
 	var k := DfPlane.new()
 	var f := player.forward()
@@ -587,7 +583,7 @@ func _start_demo_loop() -> void:
 	player.position = Vector3(-150.0, 72.0, 520.0)   # low: the loops stay under the 300 m ceiling
 	player.yaw = 0.35
 	player.pitch = 0.0
-	player.speed = 125.0
+	player.speed = 125.0 * K
 	player.vel = player.forward() * 125.0
 	player.assist = true
 	_cam_up = Vector3.UP
@@ -658,7 +654,7 @@ func _start_demo_koi() -> void:
 	player.position = Vector3(0.0, 150.0, 700.0)
 	player.yaw = 0.0
 	player.pitch = 0.3
-	player.speed = 110.0
+	player.speed = 110.0 * K
 	player.vel = player.forward() * 110.0
 	_cam_up = Vector3.UP
 	var f: Dictionary = render.koi.fish[0]
@@ -696,7 +692,7 @@ func _start_demo_boss(ko := false) -> void:
 	var to := -inward
 	player.yaw = atan2(-to.x, -to.z)
 	player.pitch = 0.0
-	player.speed = 125.0
+	player.speed = 125.0 * K
 	player.vel = player.forward() * 125.0
 	boss_st.charge = 0.30
 	boss_st.phase = "charge"
@@ -731,7 +727,7 @@ func _demo_boss(dt: float) -> void:
 			var stk2 := player.steer_to(player.position + perp_k * 800.0, 1.5)
 			player.turn = clampf(stk2.x * 2.0, -1.0, 1.0)
 			player.boost_in = true
-			player.speed_cap = 215.0
+			player.speed_cap = 215.0 * K
 		return
 	if _demo_phase == "pass":
 		var away := boss.position - player.position
@@ -806,8 +802,8 @@ func _start_demo_beach() -> void:
 	var tang := Vector3(0, 0, -1)
 	player.yaw = atan2(-tang.x, -tang.z)
 	player.pitch = 0.0
-	player.speed = 70.0
-	player.speed_cap = 70.0
+	player.speed = 70.0 * K
+	player.speed_cap = 70.0 * K
 	player.vel = player.forward() * 70.0
 	_cam_up = Vector3.UP
 	_update_camera(0.0)
@@ -830,7 +826,7 @@ func _start_demo_rings(kind := "") -> void:
 	player.position = Vector3(0, 140, 600)
 	player.yaw = 0.0
 	player.pitch = 0.0
-	player.speed = 95.0
+	player.speed = 95.0 * K
 	player.vel = player.forward() * 95.0
 	rings.spawn(player.position - player.forward() * 300.0, player.forward(), kind if kind != "" else "slalom")
 	_cam_up = Vector3.UP
@@ -841,7 +837,7 @@ func _demo_rings(dt: float) -> void:
 	player.drift = false
 	match _demo_phase:
 		"rings":
-			player.speed_cap = 95.0
+			player.speed_cap = 95.0 * K
 			rings.tick(dt, player.position, player.forward())
 			if rings.next < rings.rings.size():
 				var nx: Vector3 = rings.pose(rings.next, rings.t + 0.35)[0]       # lead the moving ring
@@ -865,12 +861,12 @@ func _demo_rings(dt: float) -> void:
 					ep.y = maxf(player.position.y, world.ground_y(ep) + 90.0) + 10.0 * k      # above the terrain
 					e.setup("fighter", ep, 0.0)
 					e.yaw = player.yaw + PI
-					e.speed = 40.0
-					e.speed_cap = 40.0
+					e.speed = 40.0 * K
+					e.speed_cap = 40.0 * K
 					e.vel = e.forward() * 40.0
 					enemies.append(e)
 		"chain":
-			player.speed_cap = 80.0
+			player.speed_cap = 80.0 * K
 			if not enemies.is_empty():
 				var st2 := player.steer_to(enemies[0].position, 1.6)
 				player.turn = st2.x
@@ -880,7 +876,7 @@ func _demo_rings(dt: float) -> void:
 				fire_laser()
 				_demo_phase = "chain_done"
 		"chain_done":                     # hold a safe altitude (the pilot used to fly into an island)
-			player.speed_cap = 80.0
+			player.speed_cap = 80.0 * K
 			var f2 := Vector3(player.forward().x, 0.0, player.forward().z).normalized()
 			var safe := maxf(world.ground_y(player.position + f2 * 300.0), world.ground_y(player.position)) + 140.0
 			var st3 := player.steer_to(player.position + f2 * 300.0 + Vector3.UP * (safe - player.position.y), 1.4)
@@ -918,8 +914,8 @@ func _start_demo_fog() -> void:
 	player.position = Vector3(0, 200, 700)
 	player.yaw = 0.0
 	player.pitch = 0.0
-	player.speed = 60.0
-	player.speed_cap = 60.0
+	player.speed = 60.0 * K
+	player.speed_cap = 60.0 * K
 	player.vel = player.forward() * 60.0
 	boss.position = player.position + Vector3(120, 40, -1400)
 	boss_st.orbit = atan2(boss.position.z, boss.position.x)
@@ -954,12 +950,12 @@ func _start_demo_asteroid() -> void:
 	var away := Vector3(-isl.x, 0.0, -isl.z)
 	var from_dir := away.normalized() if away.length() > 50.0 else Vector3(0.6, 0.0, 0.8).normalized()
 	var p0 := isl + from_dir * 1500.0
-	var flat := Vector2(p0.x, p0.z).limit_length(AREA_RADIUS - 120.0)
+	var flat := Vector2(p0.x, p0.z).limit_length(AREA_RADIUS - 120.0)   # stays in the islands quadrant
 	player.position = Vector3(flat.x, 120.0, flat.y)
 	var to := isl - player.position
 	player.yaw = atan2(-to.x, -to.z)
 	player.pitch = 0.0
-	player.speed = 125.0
+	player.speed = 125.0 * K
 	player.vel = player.forward() * 125.0
 	_cam_up = Vector3.UP
 	_update_camera(0.0)
@@ -981,7 +977,7 @@ func _start_demo_volcano() -> void:
 	var to: Vector3 = world.volcano.pos - player.position
 	player.yaw = atan2(-to.x, -to.z)
 	player.pitch = 0.06
-	player.speed = 125.0
+	player.speed = 125.0 * K
 	player.vel = player.forward() * 125.0
 	var f := player.forward()
 	f.y = 0.0
@@ -1072,7 +1068,7 @@ func _demo_inputs(dt: float) -> void:
 		var isl: Vector3 = world.islands[0].pos
 		player.boost_in = false
 		player.drift = false
-		player.speed_cap = 62.0 if weather.asteroid_active else INF    # slow, so the impact is still ahead of us
+		player.speed_cap = 62.0 * K if weather.asteroid_active else INF    # slow, so the impact is still ahead of us
 		if weather.asteroid_active:   # watch the rock all the way down (its path ends on the island)
 			var st := player.steer_to(weather.asteroid_position(), 1.8)
 			player.turn = st.x
@@ -1410,13 +1406,13 @@ func _ring_launch(done: bool) -> void:
 		var f := player.forward()
 		if f.y < 0.0:                # the last loop-wheel ring points down: throw ahead, not at the sea
 			f = Vector3(f.x, 0.0, f.z) if Vector2(f.x, f.z).length() > 0.05 else rings.axis
-		player.launch(safe_launch_dir(player.position, f, 230.0, 0.3), 0.3, 230.0)
+		player.launch(safe_launch_dir(player.position, f, 230.0 * K, 0.3 / K), 0.3 / K, 230.0 * K)
 		return
 	var p: Vector3 = rings.rings[rings.next].pos
 	for k in 3:                      # lead: predict the ring at arrival (3 passes converge)
-		var tt: float = player.position.distance_to(p) / 210.0
+		var tt: float = player.position.distance_to(p) / (210.0 * K)
 		p = rings.pose(rings.next, rings.t + tt)[0]
-	player.launch(safe_launch_dir(player.position, p - player.position, 210.0, 0.55), 0.55, 210.0)
+	player.launch(safe_launch_dir(player.position, p - player.position, 210.0 * K, 0.55 / K), 0.55 / K, 210.0 * K)   # same throw length, faster
 	Sfx.play("drift_boost", -6.0, 0.05)
 
 ## T: "stop it from aiming into the ground". A launch is a straight throw at >= 210 m/s; the
@@ -1428,7 +1424,7 @@ func safe_launch_dir(from: Vector3, dir: Vector3, spd: float, time: float) -> Ve
 	if dir.length() < 0.01:
 		return dir
 	var d := dir.normalized()
-	var reach := spd * (time + 1.2)
+	var reach := spd * (time + 1.2 / K)
 	for it in 16:
 		var ok := true
 		for k in range(1, 9):
@@ -1443,6 +1439,47 @@ func safe_launch_dir(from: Vector3, dir: Vector3, spd: float, time: float) -> Ve
 			return Vector3.UP
 		d = d.rotated(right.normalized(), deg_to_rad(5.0))
 	return d
+
+## Arena wall (slice 16t). T: "a transparent grid appears and limits movement without
+## harming you ... it should glide against the wall". At the wall the jet is held inside,
+## the part of its velocity into the wall is removed, and its nose turns along the wall: it
+## slides, no damage, no speed loss. The grid shows within WALL_SHOW m (DfRender draws it).
+const WALL_SHOW := 170.0
+const WALL_TURN := 5.0             # rad/s: how fast the nose turns along the wall
+const WALL_GAP := 40.0             # the jet stops this far inside the drawn grid (a camera ON the wall saw the grid edge-on)
+var wall_near := 0.0               # 0..1 grid strength (1 = touching)
+var wall_point := Vector3.ZERO     # nearest point on the nearest wall
+var wall_n := Vector3.ZERO         # that wall's outward normal
+
+func _glide_wall(dt: float) -> void:
+	var p := player.position
+	var dists := [p.x - DfWorld.ARENA_MIN.x - WALL_GAP, DfWorld.ARENA_MAX.x - WALL_GAP - p.x, p.z - DfWorld.ARENA_MIN.y - WALL_GAP, DfWorld.ARENA_MAX.y - WALL_GAP - p.z]
+	var ns := [Vector3.LEFT, Vector3.RIGHT, Vector3.FORWARD, Vector3.BACK]
+	var best := 0
+	for i in 4:
+		if dists[i] < dists[best]:
+			best = i
+	wall_n = ns[best]
+	wall_near = clampf(1.0 - float(dists[best]) / WALL_SHOW, 0.0, 1.0)
+	wall_point = p + wall_n * (float(dists[best]) + WALL_GAP)
+	if DfWorld.inside(p, WALL_GAP):
+		return
+	player.position = DfWorld.clamp_inside(p, WALL_GAP)
+	wall_near = 1.0
+	for i in 4:                     # every wall you are past (a corner = 2)
+		if float(dists[i]) < 0.0:
+			var n: Vector3 = ns[i]
+			var vn := player.vel.dot(n)
+			if vn > 0.0:
+				player.vel -= n * vn
+			var f := player.forward()
+			var fo := f.dot(n)
+			if fo > 0.0:
+				var along := f - n * fo
+				if along.length() < 0.05:
+					along = n.cross(Vector3.UP)          # nose straight at the wall: pick a side
+				var tgt := Basis.looking_at(along.normalized(), Vector3.UP if absf(along.normalized().y) < 0.95 else player.up())
+				player.basis = player.basis.slerp(tgt, clampf(WALL_TURN * dt, 0.0, 1.0)).orthonormalized()
 
 # ---------------------------------------------------------------- cyan laser
 func _supercharge() -> void:
@@ -1563,8 +1600,7 @@ func _spawn_enemy(kind: String) -> void:
 	var ang := rng.randf() * TAU
 	var r := rng.randf_range(650.0, 950.0)
 	var p := player.position + Vector3(cos(ang) * r, 0.0, sin(ang) * r)
-	p.x = clampf(p.x, -AREA_RADIUS, AREA_RADIUS)
-	p.z = clampf(p.z, -AREA_RADIUS, AREA_RADIUS)
+	p = DfWorld.clamp_inside(p, 150.0)        # fights follow you, anywhere on the map
 	p.y = maxf(world.ground_y(p) + 50.0, rng.randf_range(70.0, 180.0))
 	var to := player.position - p
 	e.setup(kind, p, atan2(-to.x, -to.z))
@@ -1659,8 +1695,9 @@ func _spawn_ship() -> void:
 	var p := Vector3.ZERO
 	for tries in 60:
 		var ang := rng.randf() * TAU
-		var r := rng.randf_range(250.0, AREA_RADIUS * 0.85)
-		p = Vector3(cos(ang) * r, 0.0, sin(ang) * r)
+		var r := rng.randf_range(350.0, 1100.0)    # near you (slice 16t: fights follow you)
+		p = DfWorld.clamp_inside(player.position + Vector3(cos(ang) * r, 0.0, sin(ang) * r), 150.0)
+		p.y = 0.0
 		var clear := true
 		for off in [Vector3(40, 0, 0), Vector3(-40, 0, 0), Vector3(0, 0, 40), Vector3(0, 0, -40), Vector3.ZERO]:
 			if not world.is_sea(p + off):

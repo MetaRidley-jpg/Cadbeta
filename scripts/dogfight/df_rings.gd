@@ -42,7 +42,7 @@ const SPAWN_AHEAD := 650.0       # m in front of the player
 const LOST_DIST := 2600.0        # player this far away and not started: move the course
 const MAX_TOP := 275.0           # the top of a course stays under the 300 m ceiling
 const LOOP_R := 95.0
-const EDGE := DfWorld.AREA_RADIUS - 110.0   # the whole course stays this far inside the arena (T: "rings can spawn out of bounds")
+const EDGE_PAD := 110.0          # the whole course stays this far inside the arena walls (T: "rings can spawn out of bounds")
 const SWAY := 40.0               # m a ring can move sideways off the course line (slalom 34, corkscrew 30)
 # Path speeds are kept to ~15-20 m/s sideways (the jet flies 100-150 m/s): the rings drift
 # and push around but can be caught. The first tune (~50 m/s) beat even the scripted pilot.
@@ -90,7 +90,7 @@ func spawn(pos: Vector3, fwd: Vector3, kind_override := "") -> void:
 	# far scores worse, so a course near the edge prefers a heading back toward the middle.
 	var best_score := INF
 	var best_clear := 0.0
-	var home := Vector3(-pos.x, 0.0, -pos.z)
+	var home := DfWorld.center() - Vector3(pos.x, 0.0, pos.z)
 	for k in 12:
 		var ax: Vector3
 		if k < 4:
@@ -151,26 +151,21 @@ static func _clear_box(k: String) -> Array:
 		return [0.0, (RINGS - 1) * SPACING, 0.0, 0.0]
 	return box(k)
 
-## Move a course origin (flat) so the whole footprint sits within EDGE of the arena centre.
-## The arena is a circle (convex), so the 4 corners of the footprint suffice.
+## Move a course origin (flat) so the whole footprint sits EDGE_PAD inside the square arena.
+## The arena is convex, so the 4 corners of the footprint suffice.
 static func _inside(o: Vector3, ax: Vector3, k: String) -> Vector3:
 	var sd := ax.cross(Vector3.UP).normalized()
 	var bx := box(k)
-	var out := o
-	for it in 6:
-		var worst := 0.0
-		var push := Vector2.ZERO
-		for a in [bx[0], bx[1]]:
-			for b in [bx[2], bx[3]]:
-				var q: Vector3 = out + ax * float(a) + sd * float(b)
-				var r := Vector2(q.x, q.z).length()
-				if r - EDGE > worst:
-					worst = r - EDGE
-					push = -Vector2(q.x, q.z).normalized() * (worst + 1.0)
-		if worst <= 0.0:
-			break
-		out += Vector3(push.x, 0.0, push.y)
-	return out
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for a in [bx[0], bx[1]]:
+		for b in [bx[2], bx[3]]:
+			var q: Vector3 = ax * float(a) + sd * float(b)
+			lo = Vector2(minf(lo.x, q.x), minf(lo.y, q.z))
+			hi = Vector2(maxf(hi.x, q.x), maxf(hi.y, q.z))
+	var mn := DfWorld.ARENA_MIN + Vector2(EDGE_PAD, EDGE_PAD) - lo
+	var mx := DfWorld.ARENA_MAX - Vector2(EDGE_PAD, EDGE_PAD) - hi
+	return Vector3(clampf(o.x, mn.x, mx.x), o.y, clampf(o.z, mn.y, mx.y))
 
 ## Ground + spire tops under a course line.
 func _clearance(o: Vector3, ax: Vector3, k := "") -> float:

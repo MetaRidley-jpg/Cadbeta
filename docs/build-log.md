@@ -365,3 +365,11 @@ T: "Rings can spawn out of vounds" / "Also stop it from aiming into the ground" 
 - Boost: let go = the speed holds 0.4 / 0.8 / 1.2 s (stage 1/2/top), then coasts at 35 m/s² (was 70). Top speed → cruise ~4.9 s (was ~1.9 s). Drift still brakes at once. `DfPlane.BOOST_HOLD`, `COAST_DECEL`.
 - Tests: dogfight 231 (+30: bounds over 3,600+ ring poses, launch safety x3, 3 shapes x3, flyability x7, boost hold x4).
 
+## Slice 16t: 4x map foundation (2026-11-28)
+T: "Ask me questions to 4x the map and make this just one quadrant" (answers + full plan: `docs/world-4x.md`).
+- 4600 m square arena, 4 quadrants; the old islands are zone 0 (same coordinates); placeholder islands in zones 1-3.
+- Glide wall with a mint grid (no damage, slides along). TURN BACK is gone.
+- Everything +30% (`DfPlane.SPEED_K`): speeds and turn rates together, so courses and curves keep their size. First try left launch durations unscaled: the Loop and Big Loop pilots crashed (launches threw 30% further). Fixed: durations / K.
+- Fights follow you; scenery culled by a 500 m cell grid (4x objects, same cost); `ground_y` uses the grid.
+- Tests: dogfight 261.
+
