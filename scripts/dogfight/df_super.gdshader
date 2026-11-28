@@ -42,6 +42,13 @@ const vec3 SH_3 = vec3(0.04, 0.55, 0.60);
 const vec3 REEF = vec3(0.05, 0.30, 0.26);
 const vec3 CAUSTIC = vec3(0.88, 1.0, 0.95);
 const vec3 VOLC = vec3(0.231, 0.153, 0.278);
+// slice 16v: alien hive creep (zone 1), flat chunky bands + sparse pink veins
+const vec3 CREEP_EDGE = vec3(0.30, 0.25, 0.33);
+const vec3 CREEP_L = vec3(0.42, 0.20, 0.45);
+const vec3 CREEP = vec3(0.31, 0.13, 0.35);
+const vec3 CREEP_D = vec3(0.21, 0.08, 0.26);
+const vec3 HIVE_ROCK = vec3(0.16, 0.11, 0.19);
+const vec3 VEIN = vec3(0.98, 0.32, 0.62);
 const vec3 SCORCH = vec3(0.235, 0.137, 0.161);
 const vec3 LAVA = vec3(1.0, 0.302, 0.0);
 const vec3 LAVA_HOT = vec3(1.0, 0.78, 0.0);
@@ -84,6 +91,10 @@ void fragment() {
 			else if (band < 5.5) { col = GRASS_D; }
 			else if (band < 6.5) { col = ROCK; }
 			else { col = VOLC; }
+			if (d.b > 0.9 && g < 0.5) {      // alien creep (zone 1)
+				col = band < 1.5 ? CREEP_EDGE : (band < 3.5 ? CREEP_L : (band < 4.5 ? CREEP : (band < 5.5 ? CREEP_D : HIVE_ROCK)));
+				if (band > 1.5 && hash(m * 0.37 + 3.1) > 0.965) { col = VEIN; }
+			}
 			if (g < 1.5) { col *= ambient.rgb; }
 			// speed texture: two-tone checker on land, like the old arcade floors
 			if (band > 0.5 && g < 0.5 && hash(m) > 0.72) { col *= band < 2.5 ? 0.94 : 0.86; }

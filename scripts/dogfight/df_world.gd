@@ -27,6 +27,12 @@ var map_img: Image
 var map_tex: ImageTexture
 var map_origin := (ARENA_MIN + ARENA_MAX) * 0.5 - Vector2(MAP_PX * MAP_M * 0.5, MAP_PX * MAP_M * 0.5)
 var cells := {}                        # Vector2i -> {"palms": [i], "spires": [i]}
+## Slice 16v, zone 1 = ALIEN HIVE (T: "StarCraft style aliens with Gatling guns in cliffs, and
+## cannons in valleys ... 3 headed hydra plant aliens"). Map: alien land has B = 255 (B is
+## only sea depth elsewhere); the shader paints it as creep. Spires there are tall alien
+## cliffs ("alien": true). ground_units: {kind: gatling|cannon|hydra, pos} for DfGame.
+const ALIEN_ZONE := 1
+var ground_units: Array = []
 var islands: Array = []                # {pos: Vector3, radius}
 var spires: Array = []                 # {pos: Vector3, radius, height, alive}
 var palms: Array = []                  # {pos: Vector3, alive, yaw (leans out to sea)}
@@ -102,17 +108,23 @@ func build(seed_value := 7) -> void:
 		if band > 0 and Vector2(w.x - volcano.pos.x, w.y - volcano.pos.z).length() < volcano.radius:
 			band = 7   # volcanic rock
 		data[i * 4] = band
+		if band > 0 and zone_of(Vector3(w.x, 0.0, w.y)) == ALIEN_ZONE:
+			data[i * 4 + 2] = 255                  # alien creep
 	map_img = Image.create_from_data(MAP_PX, MAP_PX, false, Image.FORMAT_RGBA8, data)
 	map_tex = ImageTexture.create_from_image(map_img)
 	# obstacles
 	for isl in islands:
 		if isl.pos == volcano.pos:
 			continue
-		var n_spires := int(isl.radius / 70.0)
+		var alien := zone_of(isl.pos) == ALIEN_ZONE
+		var n_spires := int(isl.radius / (45.0 if alien else 70.0))
 		for k in n_spires:
 			var p := _random_on_island(isl, 0.55)
 			if band_at(p) >= 4:
-				spires.append({"pos": p, "radius": rng.randf_range(14.0, 24.0), "height": rng.randf_range(55.0, 110.0), "alive": true})
+				if alien:   # cliffs: taller, wider
+					spires.append({"pos": p, "radius": rng.randf_range(22.0, 32.0), "height": rng.randf_range(90.0, 150.0), "alive": true, "alien": true})
+				else:
+					spires.append({"pos": p, "radius": rng.randf_range(14.0, 24.0), "height": rng.randf_range(55.0, 110.0), "alive": true})
 		# sea stacks: mossy pillars standing in the shallows along the beach (T's references)
 		var n_sea := int(isl.radius / 55.0)
 		for k in n_sea * 3:
@@ -121,8 +133,10 @@ func build(seed_value := 7) -> void:
 			var a := rng.randf() * TAU
 			var p: Vector3 = isl.pos + Vector3(cos(a), 0.0, sin(a)) * isl.radius * rng.randf_range(0.95, 1.16)
 			if band_at(p) <= 1:
-				spires.append({"pos": p, "radius": rng.randf_range(10.0, 16.0), "height": rng.randf_range(45.0, 95.0), "alive": true})
+				spires.append({"pos": p, "radius": rng.randf_range(10.0, 16.0), "height": rng.randf_range(45.0, 95.0), "alive": true, "alien": alien})
 				n_sea -= 1
+		if alien:
+			continue                               # no palms in the hive
 		var n_palms := int(isl.radius * 0.45)
 		for k in n_palms:
 			# half of them on the beach ring, leaning out over the water
@@ -136,6 +150,30 @@ func build(seed_value := 7) -> void:
 	# the hoop helpers stay for tests / tools
 
 	_build_cells()
+	_place_ground_units()
+
+## Gatlings on cliff tops, cannons on low ground (valleys), hydras between.
+func _place_ground_units() -> void:
+	ground_units.clear()
+	for sp in spires:
+		if sp.get("alien", false) and rng.randf() < 0.6:
+			ground_units.append({"kind": "gatling", "pos": sp.pos + Vector3.UP * float(sp.height)})
+	for isl in islands:
+		if zone_of(isl.pos) != ALIEN_ZONE:
+			continue
+		for k in int(isl.radius / 90.0) + 1:
+			for tries in 12:
+				var p := _random_on_island(isl, 0.9)
+				var b := band_at(p)
+				if b >= 2 and b <= 3 and ground_y(p) < 1.0:
+					ground_units.append({"kind": "cannon", "pos": p})
+					break
+			for tries in 12:
+				var p2 := _random_on_island(isl, 0.8)
+				var b2 := band_at(p2)
+				if b2 >= 3 and b2 <= 5 and ground_y(p2) < 1.0:
+					ground_units.append({"kind": "hydra", "pos": p2})
+					break
 
 # ------------------------------------------------------------------ arena + zones
 static func zone_origin(z: int) -> Vector2:

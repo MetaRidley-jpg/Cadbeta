@@ -369,3 +369,7 @@ T: "Ask me questions to 4x the map and make this just one quadrant".
 
 ## Slice 16t+: dogfight focus + T's HUD (2026-11-28)
 - T's 3-row HUD (shield / hull / boost) with a new shield. Cadavire is disconnected for now (not deleted); the app opens straight into the dogfight and the text box carries RADIO messages.
+
+## Slices 16u + 16v: highways + alien hive (2026-11-28)
+- Ring courses are highways to other zones; clearing one launches you there.
+- Zone 1 is the ALIEN HIVE: creep, alien cliffs, gatling / cannon / hydra ground units, drone swarms.

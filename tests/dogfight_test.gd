@@ -964,7 +964,7 @@ func _ready() -> void:
 	check(bk_p.sprites() == bk_first and bk_us < 50.0, "jet sprites() is a cache lookup (%.1f us per call)" % bk_us)
 	# every atlas the match uses came from a FRESH baked file (stale = run tools/bake_sprites.sh)
 	DfRender.bake_all()
-	for k in ["player", "fighter", "kamikaze", "boss"]:
+	for k in ["player", "fighter", "kamikaze", "boss", "drone"]:
 		DfPlane.sprites_for(k)
 	DfWeather.rock_sprites()
 	check(DfSprites.stats.baked == 0 and DfSprites.stats.loaded >= 10, "all sprite atlases load from fresh art/baked files (live bakes this run %d, loaded %d)" % [DfSprites.stats.baked, DfSprites.stats.loaded])
@@ -1163,6 +1163,68 @@ func _ready() -> void:
 	check(df.player.launch_t > 0.9 and df.player.launch_dir.dot(hw_to.normalized()) > 0.95 and df.player.launch_speed >= DfPlane.BOOST_STAGE_SPEED[3] - 0.1, "clearing a highway launches you toward its zone at top speed")
 	df.rings.spawn(df.player.position, df.player.forward(), "slalom")
 	check(df.rings.target == Vector3.INF, "a fixed course (demos, tests) is a plain course")
+	df.stop()
+
+	# ---------------- slice 16v: alien hive (zone 1)
+	df.start(41)
+	df.set_process(false)
+	var ah_w: DfWorld = df.world
+	var ah_creep := 0
+	var ah_land := 0
+	for isl in ah_w.islands:
+		if DfWorld.zone_of(isl.pos) == DfWorld.ALIEN_ZONE:
+			var ah_px := Vector2i(int((isl.pos.x - ah_w.map_origin.x) / DfWorld.MAP_M), int((isl.pos.z - ah_w.map_origin.y) / DfWorld.MAP_M))
+			ah_land += 1
+			if ah_w.map_img.get_pixelv(ah_px).b8 == 255:
+				ah_creep += 1
+	check(ah_land > 0 and ah_creep == ah_land, "alien islands are creep (%d/%d)" % [ah_creep, ah_land])
+	var ah_cliffs := 0
+	var ah_bad_spire := 0
+	for sp in ah_w.spires:
+		if sp.get("alien", false):
+			ah_cliffs += 1
+			if DfWorld.zone_of(sp.pos) != DfWorld.ALIEN_ZONE:
+				ah_bad_spire += 1
+	check(ah_cliffs >= 6 and ah_bad_spire == 0, "alien cliffs only in the hive (%d)" % ah_cliffs)
+	var ah_kinds := {}
+	for u in df.ships:
+		if u.get("fixed", false):
+			ah_kinds[u.kind] = int(ah_kinds.get(u.kind, 0)) + 1
+	check(ah_kinds.has("gatling") and ah_kinds.has("cannon") and ah_kinds.has("hydra"), "the hive has gatlings, cannons and hydras %s" % str(ah_kinds))
+	check(df._ships_alive() == 0, "ground units never block a wave clear")
+	# each kind fires at you in range, not out of range
+	df.state = "wave"
+	df.enemies.clear()
+	for ah_kind in ["gatling", "cannon", "hydra"]:
+		var ah_u: Dictionary = {}
+		for u in df.ships:
+			if u.get("kind", "") == ah_kind:
+				ah_u = u
+				break
+		df.projectiles.clear()
+		df.player.position = ah_u.pos + Vector3(0, 120, 300)
+		ah_u.cd = 0.0
+		df._ground_unit_step(ah_u, 1.0 / 30.0)
+		var ah_n_near: int = df.projectiles.size()
+		df.projectiles.clear()
+		df.player.position = ah_u.pos + Vector3(0, 120, 2400)
+		ah_u.cd = 0.0
+		df._ground_unit_step(ah_u, 1.0 / 30.0)
+		check(ah_n_near >= 1 and df.projectiles.size() == 0, "%s fires in range (%d), not at 2.4 km" % [ah_kind, ah_n_near])
+		var ah_score: float = df.score
+		df._damage_ship(ah_u, 999.0)
+		check(not ah_u.alive and df.score > ah_score, "%s can be destroyed for points" % ah_kind)
+	# swarms: a wave started in the hive brings drones in packs; a drone ram hurts a little
+	df.demo = ""                      # an earlier test left a demo name set
+	df.player.position = Vector3(2600, 150, -400)
+	df.enemies.clear()
+	df.wave = 2
+	df._next_wave()
+	var ah_drones := 0
+	for e2 in df.enemies:
+		if e2.kind == "drone":
+			ah_drones += 1
+	check(ah_drones >= df.SWARM_SIZE, "a hive wave brings a swarm (%d drones)" % ah_drones)
 	df.stop()
 
 	print("DOGFIGHT TESTS: %d passed, %d failed" % [passes, fails])

@@ -392,3 +392,11 @@ T: "Speed it up + ring course highways".
 - Clearing it: a 1 s top-speed launch toward that zone (`DfGame.HIGHWAY_LAUNCH`), counted as top speed, so the boost hold carries you on. Demo / test courses with a fixed kind stay plain.
 - Tests: dogfight 276 (+3).
 
+## Slice 16v: alien hive zone (2026-11-28)
+T: "StarCraft style aliens with Gatling guns in cliffs, and cannons in valleys as well as flying ones kamikaze and swarms ... 3 headed hydra plant aliens" / "More original assets" (reference art saved in `art/ref/`, not exported).
+- Zone 1 (NE): creep terrain (map B = 255 → shader creep palette + pink veins), tall alien cliffs (`spire.alien`), no palms.
+- Ground units (`DfWorld.ground_units` → `DfGame.ships` with kind + fixed): GATLING on cliff tops (6-round bursts, 650 m), CANNON in valleys (big flak, 1150 m), 3-headed HYDRA (3 spit globs in a fan, 800 m). They turn to face you, flash when hit, die to guns / bombs / laser, never block a wave clear (`DfGame.GROUND` = the knobs). Pink edge arrows for the 3 nearest within 900 m.
+- Swarms: new `drone` kind (fast, 6 hp, rams for 8). A wave that starts in the hive adds 1 + wave/3 packs of 6.
+- Placeholder sprites (code pixel models, baked): alien cliff, gatling, cannon, hydra, drone. 18 baked atlases.
+- Tests: dogfight 287 (+11).
+

@@ -8,8 +8,8 @@ T's answers: 3 themed biomes · fights follow you · edge: "Dragon ball arena ga
 |---|---|---|
 | 16t | 4600 m square arena (4 quadrants), glide wall + grid, scenery culling, +30% tempo, fights follow you | ✅ |
 | 16u | Ring course highways between zones | ✅ |
-| 16v | Alien hive zone (zone 1, NE): terrain, hydra plants, gatling cliffs, valley cannons, swarms | next |
-| 16w | Queen boss: hatches, 3 mouths, 3 sweeping red-pink lasers, spinning triangle | |
+| 16v | Alien hive zone (zone 1, NE): terrain, hydra plants, gatling cliffs, valley cannons, swarms | ✅ |
+| 16w | Queen boss: hatches, 3 mouths, 3 sweeping red-pink lasers, spinning triangle | next |
 | 16x | Seed (laser opens it) → hex portal (mint/blue, grey frame) → on-rails bonus stage engine + first stage, Marrow reward | |
 | later | Bonus stage per zone; zones 3 + 4 | |
 
@@ -27,3 +27,7 @@ T's answers: 3 themed biomes · fights follow you · edge: "Dragon ball arena ga
 - **No minimap.** Edge arrows only. On a 4.6 km map you can get lost; a zone name / compass is cheap and likely needed.
 - **The asteroid, volcano and boss still live in zone 0.** Big events always pull you back to the islands quadrant.
 - **The wall slide can be used to escape:** an enemy behind you while you glide along the wall cannot cut the corner either; check that AI at the wall does not stick.
+
+## Slice 16v (built)
+See `docs/build-log.md` 16v. Knobs: `DfGame.GROUND` (hp, range, fire interval, burst, points), `GATLING_GAP`, `HYDRA_DMG`, `DRONE_DMG`, `SWARM_SIZE`, `UNIT_ARROW_RANGE/MAX`; `DfWorld` cliff counts/heights.
+Risks: wave titles still name the islands' weather ("THE VOLCANO WAKES") in the hive; the hive units are fixed for the whole match (no respawn), so a cleared hive goes quiet; units are ~15 m, small at range.

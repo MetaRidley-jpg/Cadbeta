@@ -92,6 +92,11 @@ static func bake_all() -> void:
 	spr["ship"] = DfSprites.bake_art("ship", _ship_model, 16, [8, 25, 50, 80], 2.0)
 	spr["hoop"] = DfSprites.bake_art("hoop", _hoop_model, 16, [-30, 0, 20, 45, 75], 2.0)
 	spr["ring"] = DfSprites.bake("ring_thin", _ring_model, 16, [-60, -30, 0, 20, 45, 75], 2.0)
+	# slice 16v: alien hive placeholders (T redraws later)
+	spr["alien_spire"] = DfSprites.bake_art("alien_spire", _alien_spire_model, 8, [4, 20, 45, 75], 5.0)
+	spr["gatling"] = DfSprites.bake_art("gatling", _gatling_model, 16, [8, 25, 50, 80], 1.2)
+	spr["cannon"] = DfSprites.bake_art("cannon", _cannon_model, 16, [8, 25, 50, 80], 1.5)
+	spr["hydra"] = DfSprites.bake_art("hydra", _hydra_model, 16, [8, 25, 50, 80], 1.4)
 	for k in 3:
 		cloud_tex.append(ImageTexture.create_from_image(_cloud_image(k)))
 	for kind in BLAST_PATHS:
@@ -114,7 +119,7 @@ func setup(g: Node) -> void:
 	game = g
 	var pt := Time.get_ticks_usec()
 	bake_all()
-	for k in ["player", "fighter", "kamikaze", "boss"]:
+	for k in ["player", "fighter", "kamikaze", "boss", "drone"]:
 		var pk := Time.get_ticks_usec()
 		DfPlane.sprites_for(k)    # bake now, not on the jet's first frame on screen
 		if DfProf.on:
@@ -1014,7 +1019,7 @@ func _draw_units() -> void:
 			for i in cl.spires:
 				var sp: Dictionary = world.spires[i]
 				if sp.alive:
-					_queue_sprite(list, spr.spire, sp.pos, float(int(sp.pos.x) % 8), sp.height / 70.0, 0.0,
+					_queue_sprite(list, spr.alien_spire if sp.get("alien", false) else spr.spire, sp.pos, float(int(sp.pos.x) % 8), sp.height / (80.0 if sp.get("alien", false) else 70.0), 0.0,
 						Color(amb, _replay_occluder_alpha(sp.pos, sp.height, sp.height * 0.5)))
 			for i in cl.palms:
 				var p: Dictionary = world.palms[i]
@@ -1023,7 +1028,12 @@ func _draw_units() -> void:
 	DfProf.val("n_cells", n_cells)
 	for s in game.ships:
 		if s.alive:
-			_queue_sprite(list, spr.ship, s.pos + Vector3(0, sin(s.bob * 1.3) * 0.8, 0), s.yaw)
+			var gk: String = s.get("kind", "ship")
+			if gk == "ship":
+				_queue_sprite(list, spr.ship, s.pos + Vector3(0, sin(s.bob * 1.3) * 0.8, 0), s.yaw)
+			else:                      # alien ground units: aim (yaw) at the player; flash when hit
+				var gm := Color(2.2, 2.2, 2.2) if float(s.get("flash", 0.0)) > 0.0 else amb
+				_queue_sprite(list, spr[gk], s.pos, s.yaw, 1.0, 0.0, gm)
 	# ring courses (DfRings): big moving rings; the next one is gold and twinkles hardest
 	var rg: DfRings = game.rings
 	if rg.active():
@@ -1635,6 +1645,83 @@ func _draw_weather(ci: CanvasItem, weather: DfWeather) -> void:
 			break
 
 # ------------------------------------------------------------------ pixel models
+# ---- slice 16v alien placeholders. Palette: hive purples, pink veins / eyes, bone spikes.
+const AL_DARK := Color("2a1433")
+const AL_MID := Color("4f2160")
+const AL_LIGHT := Color("7a3a8c")
+const AL_PINK := Color("ff4f9e")
+const AL_BONE := Color("e8dcc0")
+
+static func _alien_spire_model() -> Dictionary:
+	var v := {}
+	for y in 16:
+		var r := 4.2 - y * 0.16 + (0.5 if y % 5 == 2 else 0.0)    # lumpy, organic
+		for x in range(-5, 6):
+			for z in range(-5, 6):
+				var d := Vector2(x, z).length()
+				if d <= r and d > r - 1.6:
+					var c := AL_MID if y % 4 else AL_DARK
+					if (x * 3 + z * 7 + y * 5) % 11 == 0:
+						c = AL_PINK                                   # glowing veins
+					v[Vector3i(x, y, z)] = c
+	for x in range(-2, 3):
+		for z in range(-2, 3):
+			if Vector2(x, z).length() <= 2.2:
+				v[Vector3i(x, 16, z)] = AL_LIGHT
+	return v
+
+static func _gatling_model() -> Dictionary:
+	var v := {}
+	for x in range(-3, 4):
+		for z in range(-3, 4):
+			if Vector2(x, z).length() <= 3.2:
+				v[Vector3i(x, 0, z)] = AL_DARK
+				v[Vector3i(x, 1, z)] = AL_MID
+	for x in range(-2, 3):
+		for z in range(-2, 3):
+			v[Vector3i(x, 2, z)] = AL_LIGHT
+	for b in [-1, 1]:                      # twin barrels pointing forward (-z)
+		for z in range(-7, 0):
+			v[Vector3i(b, 3, z)] = AL_BONE
+	v[Vector3i(0, 3, 0)] = AL_PINK
+	v[Vector3i(0, 4, 0)] = AL_PINK
+	return v
+
+static func _cannon_model() -> Dictionary:
+	var v := {}
+	for x in range(-4, 5):
+		for z in range(-4, 5):
+			if Vector2(x, z).length() <= 4.3:
+				v[Vector3i(x, 0, z)] = AL_DARK
+				if Vector2(x, z).length() <= 3.4:
+					v[Vector3i(x, 1, z)] = AL_MID
+					v[Vector3i(x, 2, z)] = AL_MID if Vector2(x, z).length() > 1.5 else AL_PINK
+	for k in 8:                            # thick barrel angled up and forward
+		for t in [-1, 0, 1]:
+			v[Vector3i(t, 3 + k / 2, -k)] = AL_LIGHT if t == 0 else AL_MID
+	return v
+
+static func _hydra_model() -> Dictionary:
+	var v := {}
+	for x in range(-3, 4):
+		for z in range(-3, 4):
+			if Vector2(x, z).length() <= 3.2:
+				v[Vector3i(x, 0, z)] = AL_DARK          # root bulb
+				if Vector2(x, z).length() <= 2.2:
+					v[Vector3i(x, 1, z)] = AL_MID
+	for h in 3:                                     # 3 necks, leaning out, each with a head
+		var a := TAU * h / 3.0
+		var dir := Vector2(cos(a), sin(a))
+		for y in range(2, 11):
+			var off := dir * (y - 2) * 0.45
+			v[Vector3i(roundi(off.x), y, roundi(off.y))] = AL_LIGHT if y % 3 else AL_MID
+		var hc := dir * 4.0
+		for dx in range(-1, 2):
+			for dz in range(-1, 2):
+				v[Vector3i(roundi(hc.x) + dx, 11, roundi(hc.y) + dz)] = AL_MID
+		v[Vector3i(roundi(hc.x), 12, roundi(hc.y))] = AL_PINK  # the mouth glow
+	return v
+
 static func _palm_model() -> Dictionary:
 	var v := {}
 	for y in 7:

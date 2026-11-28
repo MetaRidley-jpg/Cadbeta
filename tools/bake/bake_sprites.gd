@@ -3,7 +3,7 @@ extends Node
 func _ready() -> void:
 	var t := Time.get_ticks_msec()
 	DfRender.bake_all()
-	for k in ["player", "fighter", "kamikaze", "boss"]:
+	for k in ["player", "fighter", "kamikaze", "boss", "drone"]:
 		DfPlane.sprites_for(k)
 	for id in Challenges.rewards:      # alt player jets from the Challenges wall
 		var r: Dictionary = Challenges.rewards[id]

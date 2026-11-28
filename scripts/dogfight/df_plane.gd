@@ -14,6 +14,8 @@ const KINDS := {
 	"player":   {"speed": 125.0 * SPEED_K, "boost_speed": 215.0 * SPEED_K, "turn": 1.15 * SPEED_K, "hp": 100.0, "radius": 7.0},
 	"fighter":  {"speed": 118.0 * SPEED_K, "boost_speed": 118.0 * SPEED_K, "turn": 0.95 * SPEED_K, "hp": 30.0, "radius": 7.5},
 	"kamikaze": {"speed": 150.0 * SPEED_K, "boost_speed": 150.0 * SPEED_K, "turn": 0.85 * SPEED_K, "hp": 18.0, "radius": 7.0},
+	# slice 16v swarm drone (alien hive): small, fast, weak, rams like a kamikaze, comes in packs
+	"drone":    {"speed": 165.0 * SPEED_K, "boost_speed": 165.0 * SPEED_K, "turn": 1.25 * SPEED_K, "hp": 6.0, "radius": 4.5},
 	# QUAD GUNSHIP boss: hovers; moved by DfGame._boss_step, not by step()/ai_think()
 	"boss":     {"speed": 0.0, "boost_speed": 0.0, "turn": 0.6, "hp": 1400.0, "radius": 40.0},   # covers the rotor hubs
 }
@@ -383,7 +385,23 @@ static func model(k: String) -> Dictionary:
 			return _fighter()
 		"kamikaze":
 			return _kamikaze()
+		"drone":
+			return _drone()
 	return _player()
+
+## Swarm drone placeholder: a pink-eyed hive insect, ~6 m across (T redraws later).
+static func _drone() -> Dictionary:
+	var v := {}
+	for z in range(-3, 4):
+		for x in range(-1, 2):
+			v[Vector3i(x, 1, z)] = Color("4f2160") if absi(z) < 3 else Color("2a1433")
+	for s in [-1, 1]:                       # 2 wing blades
+		for x in range(2, 6):
+			v[Vector3i(s * x, 2, 0)] = Color("b9a6c9")
+			v[Vector3i(s * x, 2, 1)] = Color("8f7aa3")
+	v[Vector3i(0, 1, -4)] = Color("ff4f9e")   # the eye (nose)
+	v[Vector3i(0, 2, -3)] = Color("ff4f9e")
+	return v
 
 static func _player() -> Dictionary:
 	var v := {}

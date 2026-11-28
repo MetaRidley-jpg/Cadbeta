@@ -32,6 +32,19 @@ const FLAK_DMG := 16.0
 const SHIP_FIRE_INTERVAL := 2.8
 const SHIP_RANGE := 750.0
 const SHIP_HP := 60.0
+## Slice 16v: alien ground units live in `ships` (same hits / bombs / laser / lock-on) with
+## kind + fixed = true (they never block a wave clear). Per kind: hp, range, fire interval.
+const GROUND := {
+	"gatling": {"hp": 60.0, "range": 650.0, "cd": 2.2, "burst": 6, "pts": 120.0, "msg": "GATLING DOWN!"},
+	"cannon":  {"hp": 90.0, "range": 1150.0, "cd": 3.2, "burst": 1, "pts": 150.0, "msg": "CANNON DOWN!"},
+	"hydra":   {"hp": 70.0, "range": 800.0, "cd": 2.6, "burst": 3, "pts": 130.0, "msg": "HYDRA DOWN!"},
+}
+const GATLING_GAP := 0.09          # s between gatling rounds in a burst
+const HYDRA_DMG := 7.0             # each of the 3 spit globs
+const UNIT_ARROW_RANGE := 900.0    # HUD edge arrows only for ground units this close ...
+const UNIT_ARROW_MAX := 3          # ... and only the nearest few (30 arrows stacked on the edges)
+const DRONE_DMG := 8.0
+const SWARM_SIZE := 6   # HUD edge arrows only for ground units this close
 const BOMB_COOLDOWN := 1.0
 const BOMB_RADIUS := 34.0
 const BOMB_DMG := 90.0
@@ -304,6 +317,7 @@ func start(seed_value := -1) -> void:
 	render.setup(self)
 	enemies.clear()
 	ships.clear()
+	_add_ground_units()
 	projectiles.clear()
 	wave = 0
 	waves_cleared = 0
@@ -1660,13 +1674,13 @@ func _enemies_step(dt: float) -> void:
 			dead.append(e)
 			continue
 		var d: float = e.position.distance_to(player.position)
-		if e.kind == "kamikaze" and state != "crash" and d < e.radius + player.radius and not player.rolling():
-			fx.explosion(e.position, 1.3)
+		if (e.kind == "kamikaze" or e.kind == "drone") and state != "crash" and d < e.radius + player.radius and not player.rolling():
+			fx.explosion(e.position, 1.3 if e.kind == "kamikaze" else 0.6)
 			e.alive = false
 			dead.append(e)
-			_shake += 0.8
+			_shake += 0.8 if e.kind == "kamikaze" else 0.3
 			Game.say.emit("df_hit", 1)
-			_hit_player(KAMIKAZE_DMG)
+			_hit_player(KAMIKAZE_DMG if e.kind == "kamikaze" else DRONE_DMG)
 			continue
 		if e.kind == "kamikaze" and d < 260.0 and not e.has_meta2("warned"):
 			e.set_meta2("warned", true)
@@ -1699,7 +1713,7 @@ func _kill_enemy(e: DfPlane, how: String) -> void:
 	fx.explosion(e.position, 1.0)
 	if e.position.y < 3.0:
 		fx.splash(e.position, 1.4)
-	var pts := 100.0 if e.kind == "fighter" else 80.0
+	var pts := 100.0 if e.kind == "fighter" else (40.0 if e.kind == "drone" else 80.0)
 	match how:
 		"player":
 			kills += 1
@@ -1727,6 +1741,17 @@ func _takedown(text: String, bonus: float) -> void:
 	if rng.randf() < 0.45:
 		Game.say.emit("df_takedown", 1)
 
+## A swarm: SWARM_SIZE drones from one point, close together, all diving at you.
+func _spawn_swarm() -> void:
+	var ang := rng.randf() * TAU
+	var c := DfWorld.clamp_inside(player.position + Vector3(cos(ang), 0.0, sin(ang)) * rng.randf_range(700.0, 950.0), 150.0)
+	c.y = maxf(world.ground_y(c) + 60.0, rng.randf_range(90.0, 190.0))
+	var to := player.position - c
+	for k in SWARM_SIZE:
+		var e := DfPlane.new()
+		e.setup("drone", c + Vector3(rng.randf_range(-25, 25), rng.randf_range(-12, 12), rng.randf_range(-25, 25)), atan2(-to.x, -to.z) + rng.randf_range(-0.2, 0.2))
+		enemies.append(e)
+
 func _spawn_ship() -> void:
 	var p := Vector3.ZERO
 	for tries in 60:
@@ -1746,15 +1771,24 @@ func _spawn_ship() -> void:
 func _ships_alive() -> int:
 	var n := 0
 	for s in ships:
-		if s.alive:
+		if s.alive and not s.get("fixed", false):
 			n += 1
 	return n
+
+func _add_ground_units() -> void:
+	for u in world.ground_units:
+		var g: Dictionary = GROUND[u.kind]
+		ships.append({"pos": u.pos, "hp": g.hp, "alive": true, "cd": rng.randf_range(0.5, float(g.cd)), "bob": 0.0,
+			"yaw": rng.randf() * TAU, "kind": u.kind, "fixed": true, "burst": 0, "flash": 0.0})
 
 func _ships_step(dt: float) -> void:
 	for s in ships:
 		if not s.alive:
 			continue
 		s.bob += dt
+		if s.get("fixed", false):
+			_ground_unit_step(s, dt)
+			continue
 		if state != "wave":
 			continue
 		s.cd -= dt
@@ -1767,10 +1801,58 @@ func _ships_step(dt: float) -> void:
 			projectiles.append({"p": from, "v": (aim - from).normalized() * FLAK_SPEED, "life": t, "kind": "flak", "dmg": FLAK_DMG})
 			fx.puff(from, Color(1, 0.8, 0.4, 1), 2.0, 4.0, 0.15)
 
+func _ground_unit_step(s: Dictionary, dt: float) -> void:
+	s.flash = maxf(0.0, float(s.flash) - dt)
+	var to: Vector3 = player.position - s.pos
+	var d := to.length()
+	if d < 2500.0:
+		s.yaw = lerp_angle(float(s.yaw), atan2(-to.x, -to.z), clampf(2.0 * dt, 0.0, 1.0))   # turn to face you
+	if state != "wave" or not player.alive:
+		return
+	var g: Dictionary = GROUND[s.kind]
+	s.cd -= dt
+	if s.cd > 0.0 or d > float(g.range):
+		return
+	var from: Vector3 = s.pos + Vector3.UP * 4.0
+	match String(s.kind):
+		"gatling":                       # a burst of rounds, one every GATLING_GAP
+			var lead: Vector3 = player.position + player.vel * (d / ENEMY_BULLET_SPEED)
+			var dir := (lead - from).normalized().rotated(Vector3.UP, rng.randf_range(-0.03, 0.03))
+			projectiles.append({"p": from, "v": dir * ENEMY_BULLET_SPEED, "life": float(g.range) / ENEMY_BULLET_SPEED + 0.2, "kind": "enemy_bullet", "dmg": ENEMY_BULLET_DMG})
+			s.burst = int(s.burst) + 1
+			s.cd = GATLING_GAP
+			if int(s.burst) >= int(g.burst):
+				s.burst = 0
+				s.cd = float(g.cd)
+		"cannon":                        # one big flak shell
+			var t := d / FLAK_SPEED
+			var aim: Vector3 = player.position + player.vel * t
+			projectiles.append({"p": from, "v": (aim - from).normalized() * FLAK_SPEED, "life": t, "kind": "flak", "dmg": FLAK_DMG * 1.3})
+			fx.puff(from, Color(1, 0.5, 0.8, 1), 3.0, 5.0, 0.2)
+			s.cd = float(g.cd)
+		"hydra":                         # 3 heads spit 3 slow globs in a fan
+			var t2 := d / (FLAK_SPEED * 0.8)
+			for h in 3:
+				var aim2: Vector3 = player.position + player.vel * t2 + Vector3(0, 0, 0).rotated(Vector3.UP, 0) + (Vector3(cos(TAU * h / 3.0), 0.3, sin(TAU * h / 3.0)) * 18.0)
+				projectiles.append({"p": from + Vector3.UP * 8.0, "v": (aim2 - from).normalized() * FLAK_SPEED * 0.8, "life": t2, "kind": "flak", "dmg": HYDRA_DMG})
+			fx.puff(from + Vector3.UP * 8.0, Color(1, 0.3, 0.6, 1), 2.5, 5.0, 0.2)
+			s.cd = float(g.cd)
+
 func _damage_ship(s: Dictionary, v: float) -> void:
 	if not s.alive:
 		return
 	s.hp -= v
+	s.flash = 0.08
+	if s.hp <= 0.0 and s.get("fixed", false):
+		s.alive = false
+		var g: Dictionary = GROUND[s.kind]
+		_last_kill = {"t": sim_time, "pos": s.pos, "id": 0}
+		kills += 1
+		score += float(g.pts)
+		player.boost = minf(100.0, player.boost + BOOST_KILL)
+		fx.explosion(s.pos + Vector3.UP * 4.0, 1.3)
+		_takedown(String(g.msg), 0.0)
+		return
 	if s.hp <= 0.0:
 		s.alive = false
 		_last_kill = {"t": sim_time, "pos": s.pos, "id": 0}
@@ -1986,6 +2068,9 @@ func _next_wave() -> void:
 		_spawn_enemy("fighter")
 	for k in int(_wave_def.kamikaze):
 		_spawn_enemy("kamikaze")
+	if demo == "" and DfWorld.zone_of(player.position) == DfWorld.ALIEN_ZONE:
+		for k in 1 + wave / 3:                  # the hive answers with swarms
+			_spawn_swarm()
 	for k in int(_wave_def.ships):
 		_spawn_ship()
 	state = "wave"
@@ -2731,9 +2816,18 @@ func _draw_hud_body() -> void:
 	for e in enemies:
 		if e.alive:
 			items.append([e.position, Color("2fa8ff") if e.kind == "boss" else (Color("ff1f4b") if e.kind == "fighter" else Color("ffb000")), 3.0 if e.kind == "boss" else 1.0])
+	var near_units: Array = []
 	for s in ships:
 		if s.alive:
-			items.append([s.pos, Color("d6dde8"), 1.3])
+			if s.get("fixed", false):
+				var ud: float = s.pos.distance_to(player.position)
+				if ud < UNIT_ARROW_RANGE:
+					near_units.append([ud, s.pos])
+			else:
+				items.append([s.pos, Color("d6dde8"), 1.3])
+	near_units.sort_custom(func(a, b): return a[0] < b[0])
+	for k in mini(UNIT_ARROW_MAX, near_units.size()):
+		items.append([near_units[k][1], Color("ff4f9e"), 1.0])      # alien ground units: pink, nearest few
 	if weather.asteroid_active:
 		items.append([weather.asteroid_position(), Color("ff3c00"), 2.2])
 	if rings.active() and rings.next < rings.rings.size():
